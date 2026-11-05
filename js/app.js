@@ -296,7 +296,6 @@
                     </div>
                 </div>
                 <div class="prodi-card-body">
-                    <div class="prodi-code">STAND ${prodi.code}</div>
                     <h4 class="prodi-name">${prodi.name}</h4>
                 </div>
                 <div class="prodi-card-footer">
