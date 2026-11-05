@@ -13,6 +13,7 @@
     let allParticipants = [];
     let allAnalytics = null;
     let schoolsList = [];
+    let currentPage = 1;
 
     // DOM Elements
     const elements = {
@@ -39,6 +40,12 @@
         searchInput: document.getElementById('searchInput'),
         schoolFilter: document.getElementById('schoolFilter'),
         statusFilter: document.getElementById('statusFilter'),
+        pageSizeSelect: document.getElementById('pageSizeSelect'),
+        paginationBar: document.getElementById('paginationBar'),
+        paginationInfo: document.getElementById('paginationInfo'),
+        currentPageText: document.getElementById('currentPageText'),
+        btnPrevPage: document.getElementById('btnPrevPage'),
+        btnNextPage: document.getElementById('btnNextPage'),
         participantsTableBody: document.getElementById('participantsTableBody'),
         tableRowCount: document.getElementById('tableRowCount'),
 
@@ -193,13 +200,14 @@
         });
     }
 
-    // Render Table Peserta dengan Filter & Search
+    // Render Table Peserta dengan Pagination, Filter, Search, & Aksi Hapus
     function renderParticipantsTable() {
         const searchTerm = elements.searchInput.value.toLowerCase().trim();
         const selectedSchool = elements.schoolFilter.value;
         const selectedStatus = elements.statusFilter.value;
+        const pageSizeVal = elements.pageSizeSelect ? elements.pageSizeSelect.value : '15';
 
-        // Filter list
+        // 1. Filter list
         const filtered = allParticipants.filter(p => {
             const matchesSearch = !searchTerm ||
                 (p.name && p.name.toLowerCase().includes(searchTerm)) ||
@@ -226,11 +234,44 @@
                     </td>
                 </tr>
             `;
+            if (elements.paginationBar) elements.paginationBar.style.display = 'none';
             return;
         }
 
-        filtered.forEach((p, idx) => {
+        // 2. Pagination calculation
+        let pageItems = [];
+        let totalPages = 1;
+        let startIdx = 0;
+        let endIdx = filtered.length;
+
+        if (pageSizeVal === 'all') {
+            pageItems = filtered;
+            totalPages = 1;
+            currentPage = 1;
+        } else {
+            const numSize = parseInt(pageSizeVal, 10) || 15;
+            totalPages = Math.ceil(filtered.length / numSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            startIdx = (currentPage - 1) * numSize;
+            endIdx = Math.min(startIdx + numSize, filtered.length);
+            pageItems = filtered.slice(startIdx, endIdx);
+        }
+
+        // Update pagination bar controls
+        if (elements.paginationBar) {
+            elements.paginationBar.style.display = 'flex';
+            elements.paginationInfo.innerHTML = `Menampilkan <strong>${startIdx + 1} - ${endIdx}</strong> dari <strong>${filtered.length}</strong> peserta`;
+            elements.currentPageText.textContent = `Hal ${currentPage} / ${totalPages}`;
+            if (elements.btnPrevPage) elements.btnPrevPage.disabled = currentPage <= 1;
+            if (elements.btnNextPage) elements.btnNextPage.disabled = currentPage >= totalPages;
+        }
+
+        // 3. Render rows
+        pageItems.forEach((p, idx) => {
             const row = document.createElement('tr');
+            const rowNumber = startIdx + idx + 1;
 
             // Format tanggal pendaftaran
             let createdText = '-';
@@ -259,7 +300,7 @@
                 : `<span class="badge-pill badge-progress">${p.visit_count || 0}/9 Stand</span>`;
 
             row.innerHTML = `
-                <td style="color: #64748B; font-weight: 600;">${idx + 1}</td>
+                <td style="color: #64748B; font-weight: 600;">${rowNumber}</td>
                 <td>
                     <strong style="color: #fff; font-size: 0.95rem;">${p.name}</strong>
                 </td>
@@ -272,22 +313,58 @@
                 <td>${chipsHtml}</td>
                 <td>${statusHtml}</td>
                 <td style="color: #94A3B8; font-size: 0.8rem;">${createdText}</td>
-                <td style="text-align: right;">
-                    <button class="btn-admin btn-detail-row" data-id="${p.id}" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
-                        Detail
-                    </button>
+                <td style="text-align: center;">
+                    <div class="action-btns-wrap">
+                        <button class="btn-admin btn-detail-row" data-id="${p.id}" title="Lihat Riwayat Kunjungan">
+                            Detail
+                        </button>
+                        <button class="btn-admin btn-delete-row" data-id="${p.id}" data-name="${p.name}" title="Hapus Data Peserta">
+                            🗑️ Hapus
+                        </button>
+                    </div>
                 </td>
             `;
 
             elements.participantsTableBody.appendChild(row);
         });
 
-        // Event listener detail button
+        // Event listener Detail Button
         document.querySelectorAll('.btn-detail-row').forEach(btn => {
             btn.addEventListener('click', () => {
                 const pId = btn.getAttribute('data-id');
                 const participant = allParticipants.find(p => p.id === pId);
                 if (participant) openParticipantDetail(participant);
+            });
+        });
+
+        // Event listener Hapus Button
+        document.querySelectorAll('.btn-delete-row').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const pId = btn.getAttribute('data-id');
+                const pName = btn.getAttribute('data-name');
+
+                if (confirm(`Apakah Anda yakin ingin menghapus data peserta "${pName}"?\n\nPerhatian: Seluruh data kunjungan stand siswa ini juga akan ikut terhapus secara permanen.`)) {
+                    btn.disabled = true;
+                    btn.innerHTML = `⏳ Menghapus...`;
+
+                    try {
+                        const res = await window.DataService.deleteParticipant(pId);
+                        if (res && res.success) {
+                            showToast(`Data peserta "${pName}" berhasil dihapus.`, 'success');
+                            // Refresh data dari database
+                            await loadAdminData();
+                        } else {
+                            showToast(res?.message || 'Gagal menghapus data peserta.', 'danger');
+                            btn.disabled = false;
+                            btn.innerHTML = `🗑️ Hapus`;
+                        }
+                    } catch (err) {
+                        console.error('Delete error:', err);
+                        showToast('Terjadi kesalahan saat menghapus data.', 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = `🗑️ Hapus`;
+                    }
+                }
             });
         });
     }
@@ -462,16 +539,42 @@
     });
 
     elements.searchInput.addEventListener('input', () => {
+        currentPage = 1;
         renderParticipantsTable();
     });
 
     elements.schoolFilter.addEventListener('change', () => {
+        currentPage = 1;
         renderParticipantsTable();
     });
 
     elements.statusFilter.addEventListener('change', () => {
+        currentPage = 1;
         renderParticipantsTable();
     });
+
+    if (elements.pageSizeSelect) {
+        elements.pageSizeSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderParticipantsTable();
+        });
+    }
+
+    if (elements.btnPrevPage) {
+        elements.btnPrevPage.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderParticipantsTable();
+            }
+        });
+    }
+
+    if (elements.btnNextPage) {
+        elements.btnNextPage.addEventListener('click', () => {
+            currentPage++;
+            renderParticipantsTable();
+        });
+    }
 
     window.addEventListener('click', (e) => {
         if (e.target === elements.participantDetailModal) {

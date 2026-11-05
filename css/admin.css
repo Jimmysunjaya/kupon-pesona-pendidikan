@@ -422,6 +422,51 @@ body {
     gap: 0.3rem;
 }
 
+/* Action Buttons */
+.action-btns-wrap {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-detail-row {
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #60A5FA !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-detail-row:hover {
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+}
+
+.btn-delete-row {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #F87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-delete-row:hover {
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+}
+
+.btn-delete-row:disabled, .btn-detail-row:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .badge-complete {
     background: rgba(16, 185, 129, 0.15);
     color: #34D399;

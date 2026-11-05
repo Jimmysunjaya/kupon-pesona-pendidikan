@@ -648,6 +648,47 @@ const DataService = {
         }
     },
 
+    // 6. Hapus Data Peserta (Admin)
+    deleteParticipant: async (participantId) => {
+        if (!participantId) return { success: false, message: "ID peserta tidak valid." };
+
+        if (supabaseClient) {
+            try {
+                // Coba via RPC delete_participant yang aman
+                const { error: rpcErr } = await supabaseClient.rpc("delete_participant", {
+                    p_participant_id: participantId
+                });
+
+                if (!rpcErr) {
+                    return { success: true };
+                }
+
+                // Fallback direct delete
+                const { error: delErr } = await supabaseClient
+                    .from("participants")
+                    .delete()
+                    .eq("id", participantId);
+
+                if (delErr) throw delErr;
+                return { success: true };
+            } catch (err) {
+                console.error("Gagal menghapus peserta di Supabase:", err);
+                return { success: false, message: err.message || "Gagal menghapus data dari server." };
+            }
+        } else {
+            // MOCK MODE
+            let mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
+            mockParticipants = mockParticipants.filter(p => p.id !== participantId);
+            setLocalStore("MOCK_PARTICIPANTS", mockParticipants);
+
+            let mockVisits = getLocalStore("MOCK_VISITS", []);
+            mockVisits = mockVisits.filter(v => v.participant_id !== participantId);
+            setLocalStore("MOCK_VISITS", mockVisits);
+
+            return { success: true, isMock: true };
+        }
+    },
+
     // Populate mock data untuk demo jika masih kosong
     seedMockDataIfEmpty: () => {
         if (!DataService.isLive()) {

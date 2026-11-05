@@ -89,7 +89,7 @@ CREATE POLICY "Public read study_programs"
 ON public.study_programs FOR SELECT
 USING (true);
 
--- 2. participants: Read & Insert dengan session_token atau anonim
+-- 2. participants: Read, Insert & Delete
 CREATE POLICY "Public read participants"
 ON public.participants FOR SELECT
 USING (true);
@@ -98,7 +98,11 @@ CREATE POLICY "Public insert participants"
 ON public.participants FOR INSERT
 WITH CHECK (true);
 
--- 3. visits: Read publik, Insert dikontrol aman
+CREATE POLICY "Public delete participants"
+ON public.participants FOR DELETE
+USING (true);
+
+-- 3. visits: Read, Insert & Delete
 CREATE POLICY "Public read visits"
 ON public.visits FOR SELECT
 USING (true);
@@ -106,6 +110,10 @@ USING (true);
 CREATE POLICY "Public insert visits"
 ON public.visits FOR INSERT
 WITH CHECK (true);
+
+CREATE POLICY "Public delete visits"
+ON public.visits FOR DELETE
+USING (true);
 
 -- ------------------------------------------------------------------------------
 -- DATABASE FUNCTIONS (RPC) YANG AMAN
@@ -335,6 +343,18 @@ BEGIN
         'prodi_stats', v_prodi_stats,
         'schools', COALESCE(v_schools_list, '[]'::jsonb)
     );
+END;
+$$;
+
+-- FUNCTION: Hapus peserta secara aman (Admin)
+CREATE OR REPLACE FUNCTION public.delete_participant(p_participant_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    DELETE FROM public.participants WHERE id = p_participant_id;
+    RETURN true;
 END;
 $$;
 

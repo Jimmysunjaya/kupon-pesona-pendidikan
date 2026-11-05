@@ -174,6 +174,15 @@
                     <option value="complete">Selesai 9 Stand (100%)</option>
                     <option value="progress">Sedang Berjalan (&lt;9)</option>
                 </select>
+
+                <select id="pageSizeSelect" class="admin-select" style="min-width: 140px;" title="Jumlah data yang ditampilkan per halaman">
+                    <option value="10">10 data / hal</option>
+                    <option value="15" selected>15 data / hal</option>
+                    <option value="25">25 data / hal</option>
+                    <option value="50">50 data / hal</option>
+                    <option value="100">100 data / hal</option>
+                    <option value="all">Semua data</option>
+                </select>
             </div>
 
             <!-- Table -->
@@ -188,13 +197,25 @@
                             <th>Stand Terkunjungi</th>
                             <th>Status</th>
                             <th>Waktu Daftar</th>
-                            <th style="text-align: right;">Aksi</th>
+                            <th style="text-align: center; min-width: 140px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="participantsTableBody">
                         <!-- Populated dynamically -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar no-print" id="paginationBar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.75rem;">
+                <div id="paginationInfo" style="font-size: 0.85rem; color: #94A3B8;">
+                    Menampilkan <strong>0 - 0</strong> dari <strong>0</strong> data
+                </div>
+                <div class="pagination-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button id="btnPrevPage" class="btn-admin" style="padding: 0.4rem 0.85rem;">&laquo; Sebelumnya</button>
+                    <span id="currentPageText" style="font-size: 0.85rem; font-weight: 700; color: #fff; padding: 0 0.5rem;">Hal 1 / 1</span>
+                    <button id="btnNextPage" class="btn-admin" style="padding: 0.4rem 0.85rem;">Selanjutnya &raquo;</button>
+                </div>
             </div>
         </section>
 
