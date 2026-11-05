@@ -169,7 +169,7 @@
             card.innerHTML = `
                 <div class="prodi-stat-top">
                     <div>
-                        <span style="font-size: 0.7rem; font-weight: 700; color: ${prodi.color}; letter-spacing: 0.05em;">STAND ${prodi.code}</span>
+                        <span style="font-size: 0.72rem; font-weight: 800; color: ${prodi.color}; letter-spacing: 0.05em;">${prodi.code}</span>
                         <div class="prodi-stat-name">${prodi.name}</div>
                     </div>
                     <div style="text-align: right;">
@@ -494,17 +494,15 @@
 
             card.innerHTML = `
                 <div class="printable-qr-header">
-                    <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" style="height: 34px; object-fit: contain; margin-bottom: 6px;"><br>
-                    <span class="printable-badge" style="background: ${prodi.color};">STAND #0${index + 1}</span>
-                    <h3 class="printable-title">${prodi.name}</h3>
-                    <p style="font-size: 0.8rem; color: #64748B; font-weight: 600;">Universitas Satya Terra Bhinneka</p>
+                    <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" style="height: 44px; object-fit: contain; margin-bottom: 8px;"><br>
+                    <h3 class="printable-title" style="color: ${prodi.color}; font-size: 1.35rem; margin-bottom: 0.2rem;">${prodi.name}</h3>
+                    <p style="font-size: 0.85rem; color: #64748B; font-weight: 600;">Universitas Satya Terra Bhinneka</p>
                 </div>
 
                 <div class="printable-qr-box" id="${qrBoxId}"></div>
 
                 <div class="printable-footer">
-                    <p style="margin-bottom: 0.35rem; font-weight: 700; color: #1E293B;">Scan untuk Catat Kunjungan</p>
-                    <p style="font-size: 0.72rem; color: #94A3B8;">Kode Manual: <strong>${prodi.code}</strong></p>
+                    <p style="font-weight: 800; color: #1E293B; font-size: 0.95rem;">Scan untuk Catat Kunjungan</p>
                 </div>
             `;
 
