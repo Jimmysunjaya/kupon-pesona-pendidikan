@@ -1,0 +1,571 @@
+/* ==============================================================================
+   ADMIN DASHBOARD CSS - SISTEM QR KUNJUNGAN 9 PROGRAM STUDI
+   ============================================================================== */
+
+:root {
+    --bg-admin-main: #0B0E14;
+    --bg-admin-card: #141923;
+    --bg-admin-surface: #1C2333;
+    --bg-admin-hover: #222B3D;
+    --border-color: #273142;
+    
+    --text-white: #FFFFFF;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+
+    --primary-blue: #3B82F6;
+    --success-green: #10B981;
+    --amber-warning: #F59E0B;
+    --purple-accent: #8B5CF6;
+    --rose-danger: #EF4444;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+
+    --transition: all 0.2s ease-in-out;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-admin-main);
+    color: #F1F5F9;
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+/* Container */
+.admin-wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+}
+
+/* -----------------------------------------------------------------------------
+   ADMIN HEADER & TOPBAR
+   ----------------------------------------------------------------------------- */
+.admin-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.25rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-logo-box {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.admin-title-wrap h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.admin-title-wrap p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.admin-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-admin {
+    background: var(--bg-admin-card);
+    border: 1px solid var(--border-color);
+    color: #F1F5F9;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.btn-admin:hover {
+    background: var(--bg-admin-surface);
+    border-color: #3B82F6;
+}
+
+.btn-admin-primary {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.btn-admin-primary:hover {
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    color: #fff;
+}
+
+.btn-admin-success {
+    background: linear-gradient(135deg, #059669, #047857);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.btn-admin-success:hover {
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   STATISTICS CARDS (4 OVERVIEW TILES)
+   ----------------------------------------------------------------------------- */
+.stats-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 992px) {
+    .stats-overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .stats-overview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat-tile {
+    background: var(--bg-admin-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.35rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.stat-tile:hover {
+    transform: translateY(-2px);
+    border-color: #38455B;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.stat-tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.stat-tile-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.stat-tile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.stat-tile-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-tile-sub {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+/* -----------------------------------------------------------------------------
+   PRODI VISITOR RECAP / PROGRESS BARS
+   ----------------------------------------------------------------------------- */
+.section-panel {
+    background: var(--bg-admin-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.section-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.section-panel-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.prodi-recap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .prodi-recap-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 580px) {
+    .prodi-recap-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.prodi-stat-card {
+    background: var(--bg-admin-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.15rem;
+    transition: var(--transition);
+}
+
+.prodi-stat-card:hover {
+    border-color: #3B82F6;
+}
+
+.prodi-stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.prodi-stat-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+.prodi-stat-count {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.prodi-meter-track {
+    width: 100%;
+    height: 8px;
+    background: #111622;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.prodi-meter-bar {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
+/* -----------------------------------------------------------------------------
+   PARTICIPANTS DATA TABLE, SEARCH & FILTERS
+   ----------------------------------------------------------------------------- */
+.filter-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    min-width: 240px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-dim);
+    pointer-events: none;
+}
+
+.admin-input {
+    width: 100%;
+    background: var(--bg-admin-surface);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: var(--transition);
+}
+
+.admin-input:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.admin-select {
+    background: var(--bg-admin-surface);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 0.65rem 2.2rem 0.65rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    min-width: 180px;
+}
+
+.admin-select:focus {
+    border-color: var(--primary-blue);
+}
+
+/* Responsive Table */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.admin-table th {
+    background: #111520;
+    color: var(--text-muted);
+    font-weight: 700;
+    padding: 0.85rem 1rem;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.admin-table td {
+    padding: 0.95rem 1rem;
+    border-bottom: 1px solid #1C2333;
+    color: #F1F5F9;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+    background: rgba(59, 130, 246, 0.04);
+}
+
+/* Badges */
+.badge-pill {
+    padding: 0.3rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.badge-complete {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-progress {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+/* Mini prodi indicator pills */
+.prodi-mini-chips {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.prodi-chip {
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   QR CODE MANAGEMENT & PRINTABLE STAND CARDS VIEW
+   ----------------------------------------------------------------------------- */
+.qr-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+    .qr-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 580px) {
+    .qr-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.printable-qr-card {
+    background: #FFFFFF;
+    color: #0F172A;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border: 3px solid #E2E8F0;
+    position: relative;
+    page-break-inside: avoid;
+}
+
+.printable-qr-header {
+    margin-bottom: 1rem;
+}
+
+.printable-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.printable-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0F172A;
+    margin-bottom: 0.2rem;
+}
+
+.printable-qr-box {
+    margin: 1rem auto;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F8FAFC;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid #CBD5E1;
+}
+
+.printable-qr-box img, .printable-qr-box canvas {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+.printable-footer {
+    font-size: 0.8rem;
+    color: #64748B;
+    font-weight: 600;
+}
+
+/* -----------------------------------------------------------------------------
+   PRINT MEDIA STYLES (Untuk Cetak Kartu Stand ke Kertas A4)
+   ----------------------------------------------------------------------------- */
+@media print {
+    body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+    }
+
+    .admin-navbar,
+    .stats-overview-grid,
+    .section-panel-header .btn-admin,
+    #participantsSection,
+    .no-print {
+        display: none !important;
+    }
+
+    .admin-wrapper {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .section-panel {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .qr-cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.5cm !important;
+    }
+
+    .printable-qr-card {
+        box-shadow: none !important;
+        border: 2px solid #000 !important;
+        page-break-inside: avoid !important;
+    }
+}
+

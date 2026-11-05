@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem QR Code Kunjungan 9 Program Studi</title>
+    <meta name="description" content="Aplikasi pencatatan kunjungan siswa ke 9 stand Program Studi kegiatan promosi kampus.">
+    <meta name="theme-color" content="#090B10">
+
+    <!-- Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CDN Libraries: Supabase JS, HTML5 QR Code, Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Toast Notification -->
+    <div id="toastBox" class="toast-box">
+        <span id="toastIcon">ℹ️</span>
+        <span id="toastMessage">Pesan notifikasi</span>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+
+        <!-- Top Header Navigation -->
+        <header class="header-top">
+            <div class="brand">
+                <div class="brand-icon">🎓</div>
+                <div>
+                    <h1 class="brand-title">Pesona Pendidikan</h1>
+                    <p class="brand-subtitle">Kunjungan 9 Program Studi</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btnOpenConfig" class="btn-icon-subtle" title="Pengaturan Koneksi Supabase">
+                    ⚙️ <span class="hide-mobile">Koneksi</span>
+                </button>
+                <a href="admin.html" class="btn-icon-subtle">
+                    📊 <span class="hide-mobile">Admin</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- ===================================================================
+             VIEW 1: FORMULIR REGISTRASI SISWA
+             =================================================================== -->
+        <section id="registrationView" class="auth-wrapper" style="display: none;">
+            <div class="reg-card">
+                <div class="reg-header">
+                    <span class="reg-badge">Registrasi Peserta</span>
+                    <h2 class="reg-title">Selamat Datang! 👋</h2>
+                    <p class="reg-desc">Silakan lengkapi data dirimu sebelum memulai kunjungan ke 9 stand Program Studi.</p>
+                </div>
+
+                <form id="formRegistration">
+                    <div class="form-group">
+                        <label class="form-label" for="regName">Nama Lengkap Siswa</label>
+                        <div class="input-icon-wrapper">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="regName" class="form-control" placeholder="Contoh: Muhammad Rizky" required autocomplete="name">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="regSchool">Asal Sekolah</label>
+                        <div class="input-icon-wrapper">
+                            <span class="input-icon">🏫</span>
+                            <input type="text" id="regSchool" class="form-control" placeholder="Contoh: SMA Negeri 1 Kota" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="regWhatsapp">Nomor WhatsApp Aktif</label>
+                        <div class="input-icon-wrapper">
+                            <span class="input-icon">📱</span>
+                            <input type="tel" id="regWhatsapp" class="form-control" placeholder="Contoh: 081234567890" required pattern="[0-9]{9,15}">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmitReg" class="btn-primary">
+                        <span>Mulai Kunjungan Stand</span>
+                        <span>🚀</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             VIEW 2: DASHBOARD KUNJUNGAN SISWA
+             =================================================================== -->
+        <main id="dashboardView" style="display: none;">
+
+            <!-- Identity Bar -->
+            <div class="student-profile-bar">
+                <div class="profile-info">
+                    <div id="studentAvatar" class="profile-avatar">S</div>
+                    <div>
+                        <div id="studentName" class="profile-name">Nama Siswa</div>
+                        <div id="studentSchool" class="profile-school">Asal Sekolah</div>
+                    </div>
+                </div>
+                <button id="btnSwitchStudent" class="btn-icon-subtle" title="Ganti Siswa / Keluar" style="font-size: 0.75rem;">
+                    🔄 Ganti Siswa
+                </button>
+            </div>
+
+            <!-- Progress Hero Card -->
+            <section class="progress-hero-card">
+                <div class="progress-stats-header">
+                    <div>
+                        <div class="progress-label">Progres Kunjungan Stand</div>
+                        <div class="progress-count-title">
+                            <span id="statVisitedCount">0</span> dari 9 Prodi
+                        </div>
+                    </div>
+                    <div>
+                        <div class="progress-percentage-pill">
+                            <span id="statPercentage">0.0</span><small>%</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Animated Progress Bar -->
+                <div class="progress-bar-track">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+
+                <!-- Completion Banner (Show when 9/9) -->
+                <div id="completionBanner" class="completion-banner">
+                    <div class="completion-icon">🏆</div>
+                    <div class="completion-text">
+                        <h4>Luar Biasa! Semua Stand Telah Dikunjungi!</h4>
+                        <p>Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia untuk mengambil hadiah/merchandise!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9 Program Studi 3-Column Grid -->
+            <section>
+                <div class="prodi-section-header">
+                    <h3 class="prodi-section-title">9 Program Studi</h3>
+                    <span class="prodi-hint">Scan QR di setiap stand</span>
+                </div>
+
+                <!-- 3 Kolom Grid Card -->
+                <div id="prodiGrid" class="prodi-grid">
+                    <!-- Cards will be populated dynamically by app.js -->
+                </div>
+            </section>
+
+            <!-- Floating Action Button: Scan QR Stand -->
+            <div class="fab-scan-container">
+                <button id="btnOpenScanner" class="btn-floating-scan">
+                    <span class="pulse-ring"></span>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Scan QR Stand Prodi</span>
+                </button>
+            </div>
+
+        </main>
+
+        <!-- Loading State Indicator -->
+        <div id="loadingView" style="text-align: center; padding: 4rem 1rem;">
+            <div class="spinner" style="width: 36px; height: 36px; border-width: 3px;"></div>
+            <p style="margin-top: 1rem; color: #94A3B8; font-size: 0.9rem;">Memuat data kunjungan...</p>
+        </div>
+
+    </div>
+
+    <!-- ===================================================================
+         MODAL: QR SCANNER (HTML5 QR CODE)
+         =================================================================== -->
+    <div id="scannerModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7V4h3"></path>
+                        <path d="M20 7V4h-3"></path>
+                        <path d="M4 17v3h3"></path>
+                        <path d="M20 17v3h-3"></path>
+                    </svg>
+                    <span>Scan QR Code Stand</span>
+                </h3>
+                <button id="btnCloseScanner" class="btn-close-modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Viewport Video Scanner -->
+                <div id="qr-reader-container">
+                    <div id="qr-reader"></div>
+                </div>
+
+                <p class="scanner-hint">Arahkan kamera smartphone ke QR Code yang terpajang di meja stand prodi.</p>
+
+                <!-- Input Manual / Kode Stand Fallback -->
+                <div class="manual-code-section">
+                    <button type="button" id="btnToggleManual" class="manual-toggle-btn">
+                        <span>⌨️ Ketik Kode Stand Manual</span>
+                    </button>
+                    <form id="formManualCode" class="manual-input-box">
+                        <input type="text" id="inputManualCode" placeholder="Kode Prodi (cth: INF, BDG, KWU)" autocomplete="off">
+                        <button type="submit">Catat</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL: CELEBRATION / DUPLICATE RESULT MODAL
+         =================================================================== -->
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 400px;">
+            <div class="modal-body">
+                <div class="result-content">
+                    <div id="resultModalIcon" class="result-icon-large">🎉</div>
+                    <h3 id="resultModalTitle" class="result-title">Kunjungan Berhasil!</h3>
+                    <p id="resultModalDesc" class="result-desc">Stand Informatika telah dicatat ke dalam dashboard kunjunganmu.</p>
+                    <button id="btnCloseResult" class="btn-primary" style="margin-top: 0;">Lanjutkan Jelajah 🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL: PENGATURAN SUPABASE CREDENTIALS
+         =================================================================== -->
+    <div id="configModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Konfigurasi Supabase</h3>
+                <button id="btnCloseConfig" class="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
+                    Hubungkan aplikasi ini ke project Supabase Anda. Dapatkan URL & Anon Key dari <strong>Supabase Dashboard &rarr; Project Settings &rarr; API</strong>.
+                </p>
+                <div id="configStatusBadge" style="margin-bottom: 1rem; padding: 0.5rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;"></div>
+                <form id="formConfig">
+                    <div class="form-group">
+                        <label class="form-label">Project URL</label>
+                        <input type="url" id="cfgUrl" class="form-control" style="padding-left: 1rem;" placeholder="https://xyzcompany.supabase.co" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Anon / Public API Key</label>
+                        <input type="text" id="cfgKey" class="form-control" style="padding-left: 1rem;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." required>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary" style="margin-top: 0; flex: 1;">Simpan & Muat Ulang</button>
+                        <button type="button" id="btnResetConfig" class="btn-icon-subtle" style="padding: 0 1rem;">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+

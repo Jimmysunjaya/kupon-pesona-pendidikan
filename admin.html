@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Sistem Kunjungan 9 Program Studi</title>
+    <meta name="description" content="Dashboard Admin untuk memantau statistik kunjungan siswa ke 9 stand Program Studi.">
+    <meta name="theme-color" content="#0B0E14">
+
+    <!-- Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CDN Libraries: Supabase JS, SheetJS (XLSX Export), QRCode.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Toast Notification -->
+    <div id="toastBox" class="toast-box">
+        <span id="toastIcon">ℹ️</span>
+        <span id="toastMessage">Pesan notifikasi</span>
+    </div>
+
+    <!-- ===================================================================
+         VIEW: PIN / PASSCODE PROTECTION
+         =================================================================== -->
+    <div id="adminPinGate" class="auth-wrapper" style="display: none; padding-top: 5rem;">
+        <div class="reg-card">
+            <div class="reg-header">
+                <span class="reg-badge">Area Terbatas</span>
+                <h2 class="reg-title">Admin Login 🔒</h2>
+                <p class="reg-desc">Masukkan PIN Keamanan untuk membuka Dashboard Panitia.</p>
+            </div>
+            <form id="formAdminPin">
+                <div class="form-group">
+                    <label class="form-label" for="adminPinInput">PIN Admin</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon">🔑</span>
+                        <input type="password" id="adminPinInput" class="form-control" placeholder="Default PIN: admin123" required autofocus>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <span>Masuk Dashboard</span>
+                    <span>➔</span>
+                </button>
+            </form>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="index.html" style="color: #64748B; font-size: 0.85rem; text-decoration: none;">&larr; Kembali ke Dashboard Siswa</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MAIN ADMIN DASHBOARD
+         =================================================================== -->
+    <div id="adminDashboardContent" class="admin-wrapper" style="display: none;">
+
+        <!-- Navigation Bar -->
+        <header class="admin-navbar">
+            <div class="admin-brand">
+                <div class="admin-logo-box">📊</div>
+                <div class="admin-title-wrap">
+                    <h1>Dashboard Panitia & Admin</h1>
+                    <p>Monitoring Kunjungan 9 Stand Program Studi</p>
+                </div>
+            </div>
+
+            <div class="admin-nav-actions no-print">
+                <button id="btnRefreshData" class="btn-admin" title="Segarkan Data Real-Time">
+                    🔄 <span>Segarkan</span>
+                </button>
+                <button id="btnExportExcel" class="btn-admin btn-admin-success">
+                    📥 <span>Export ke Excel</span>
+                </button>
+                <a href="index.html" class="btn-admin">
+                    🏠 <span>Lihat Web Siswa</span>
+                </a>
+                <button id="btnLogoutAdmin" class="btn-admin" style="color: #EF4444;">
+                    🚪 <span>Keluar</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 4 Overview Stat Tiles -->
+        <section class="stats-overview-grid">
+            <!-- 1. Total Peserta -->
+            <div class="stat-tile">
+                <div class="stat-tile-header">
+                    <span class="stat-tile-label">Total Peserta</span>
+                    <div class="stat-tile-icon" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA;">👥</div>
+                </div>
+                <div id="statTotalParticipants" class="stat-tile-number">0</div>
+                <div class="stat-tile-sub">Siswa terdaftar di sistem</div>
+            </div>
+
+            <!-- 2. Total Seluruh Kunjungan -->
+            <div class="stat-tile">
+                <div class="stat-tile-header">
+                    <span class="stat-tile-label">Total Kunjungan</span>
+                    <div class="stat-tile-icon" style="background: rgba(139, 92, 246, 0.15); color: #C084FC;">📍</div>
+                </div>
+                <div id="statTotalVisits" class="stat-tile-number">0</div>
+                <div class="stat-tile-sub">Riwayat scan stand tercatat</div>
+            </div>
+
+            <!-- 3. Siswa Selesai 9 Kunjungan -->
+            <div class="stat-tile">
+                <div class="stat-tile-header">
+                    <span class="stat-tile-label">Selesai 9 Stand (100%)</span>
+                    <div class="stat-tile-icon" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">🏆</div>
+                </div>
+                <div id="statCompletedCount" class="stat-tile-number">0</div>
+                <div id="statCompletedSub" class="stat-tile-sub">0% dari total peserta</div>
+            </div>
+
+            <!-- 4. Rata-rata Kunjungan -->
+            <div class="stat-tile">
+                <div class="stat-tile-header">
+                    <span class="stat-tile-label">Rata-rata Stand</span>
+                    <div class="stat-tile-icon" style="background: rgba(245, 158, 11, 0.15); color: #FBBF24;">⚡</div>
+                </div>
+                <div id="statAvgVisits" class="stat-tile-number">0.0</div>
+                <div class="stat-tile-sub">Stand per peserta</div>
+            </div>
+        </section>
+
+        <!-- Rekap Pengunjung Per Stand Program Studi -->
+        <section class="section-panel">
+            <div class="section-panel-header">
+                <h2 class="section-panel-title">
+                    <span>🏢</span> Rekap Jumlah Pengunjung Setiap Stand Prodi
+                </h2>
+                <span style="font-size: 0.8rem; color: #94A3B8;">Diurutkan dari Stand #1 hingga #9</span>
+            </div>
+
+            <div id="prodiRecapGrid" class="prodi-recap-grid">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- Tabel Data Peserta, Pencarian & Filter Sekolah -->
+        <section id="participantsSection" class="section-panel">
+            <div class="section-panel-header">
+                <h2 class="section-panel-title">
+                    <span>📋</span> Data Peserta & Riwayat Kunjungan
+                </h2>
+                <div style="font-size: 0.85rem; color: #94A3B8;">
+                    Menampilkan <strong id="tableRowCount" style="color: #fff;">0</strong> peserta
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="filter-toolbar no-print">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="admin-input" placeholder="Cari nama, WhatsApp, atau sekolah...">
+                </div>
+
+                <select id="schoolFilter" class="admin-select">
+                    <option value="">Semua Asal Sekolah</option>
+                    <!-- Dynamically populated -->
+                </select>
+
+                <select id="statusFilter" class="admin-select">
+                    <option value="">Semua Status</option>
+                    <option value="complete">Selesai 9 Stand (100%)</option>
+                    <option value="progress">Sedang Berjalan (&lt;9)</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">No</th>
+                            <th>Nama Siswa</th>
+                            <th>Asal Sekolah</th>
+                            <th>WhatsApp</th>
+                            <th>Stand Terkunjungi</th>
+                            <th>Status</th>
+                            <th>Waktu Daftar</th>
+                            <th style="text-align: right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participantsTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- QR Code Management & Cetak Kartu Stand -->
+        <section class="section-panel">
+            <div class="section-panel-header">
+                <div>
+                    <h2 class="section-panel-title">
+                        <span>🖨️</span> Manajemen QR Code & Kartu Stand Prodi
+                    </h2>
+                    <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.2rem;">
+                        Cetak kartu meja ini untuk dipajang di masing-masing stand agar dapat di-scan oleh siswa.
+                    </p>
+                </div>
+                <button id="btnPrintQRCards" class="btn-admin btn-admin-primary no-print">
+                    🖨️ <span>Cetak Semua Kartu Stand (A4)</span>
+                </button>
+            </div>
+
+            <!-- Grid 9 Kartu QR Stand Siap Cetak -->
+            <div id="qrCardsGrid" class="qr-cards-grid">
+                <!-- Dynamically populated with QRCode.js -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ===================================================================
+         MODAL: DETAIL RIWAYAT KUNJUNGAN SISWA
+         =================================================================== -->
+    <div id="participantDetailModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <span>👤</span> Detail Riwayat Siswa
+                </h3>
+                <button id="btnCloseDetailModal" class="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #111622; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+                    <h4 id="detailStudentName" style="font-size: 1.15rem; font-weight: 800; color: #fff;">Nama</h4>
+                    <p id="detailStudentSchool" style="color: #94A3B8; font-size: 0.85rem; margin-top: 0.2rem;">Sekolah</p>
+                    <p id="detailStudentWa" style="color: #60A5FA; font-size: 0.85rem; margin-top: 0.2rem;">WhatsApp</p>
+                </div>
+
+                <h5 style="font-size: 0.9rem; font-weight: 700; color: #F1F5F9; margin-bottom: 0.75rem;">
+                    Daftar Stand Terkunjungi (<span id="detailVisitedCount">0</span> dari 9)
+                </h5>
+
+                <div id="detailVisitsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 280px; overflow-y: auto;">
+                    <!-- List items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
+
