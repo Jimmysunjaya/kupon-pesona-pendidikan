@@ -114,6 +114,20 @@ body::before {
     transition: var(--transition);
 }
 
+.event-pill-badge {
+    display: inline-block;
+    padding: 0.25rem 0.85rem;
+    background: #E0F2FE;
+    color: var(--brand-blue);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--border-blue);
+    box-shadow: 0 2px 6px rgba(2, 108, 182, 0.08);
+}
+
 @media (max-width: 480px) {
     .brand-logo-img {
         height: 48px;
