@@ -417,9 +417,10 @@
 
             card.innerHTML = `
                 <div class="printable-qr-header">
+                    <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" style="height: 34px; object-fit: contain; margin-bottom: 6px;"><br>
                     <span class="printable-badge" style="background: ${prodi.color};">STAND #0${index + 1}</span>
                     <h3 class="printable-title">${prodi.name}</h3>
-                    <p style="font-size: 0.8rem; color: #64748B; font-weight: 600;">Kupon Pesona Pendidikan</p>
+                    <p style="font-size: 0.8rem; color: #64748B; font-weight: 600;">Universitas Satya Terra Bhinneka</p>
                 </div>
 
                 <div class="printable-qr-box" id="${qrBoxId}"></div>

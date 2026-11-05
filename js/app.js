@@ -520,51 +520,63 @@
     });
 
     // 5. Result Modal Close
-    elements.btnCloseResult.addEventListener('click', () => {
-        elements.resultModal.classList.remove('active');
-    });
+    if (elements.btnCloseResult) {
+        elements.btnCloseResult.addEventListener('click', () => {
+            elements.resultModal.classList.remove('active');
+        });
+    }
 
-    // 6. Supabase Config Modal
-    elements.btnOpenConfig.addEventListener('click', () => {
-        const isLive = window.DataService.isLive();
-        elements.configStatusBadge.style.display = 'block';
-        if (isLive) {
-            elements.configStatusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
-            elements.configStatusBadge.style.color = '#34D399';
-            elements.configStatusBadge.innerHTML = '🟢 <strong>Terhubung ke Supabase Live!</strong>';
-        } else {
-            elements.configStatusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
-            elements.configStatusBadge.style.color = '#FBBF24';
-            elements.configStatusBadge.innerHTML = '🟡 <strong>Mode Demo / Simulasi Aktif</strong> (Data tersimpan di localStorage browser ini).';
-        }
+    // 6. Supabase Config Modal (Hanya jika elemen ada)
+    if (elements.btnOpenConfig) {
+        elements.btnOpenConfig.addEventListener('click', () => {
+            const isLive = window.DataService.isLive();
+            if (elements.configStatusBadge) {
+                elements.configStatusBadge.style.display = 'block';
+                if (isLive) {
+                    elements.configStatusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    elements.configStatusBadge.style.color = '#34D399';
+                    elements.configStatusBadge.innerHTML = '🟢 <strong>Terhubung ke Supabase Live!</strong>';
+                } else {
+                    elements.configStatusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+                    elements.configStatusBadge.style.color = '#FBBF24';
+                    elements.configStatusBadge.innerHTML = '🟡 <strong>Mode Demo / Simulasi Aktif</strong> (Data tersimpan di localStorage browser ini).';
+                }
+            }
 
-        elements.cfgUrl.value = localStorage.getItem('APP_SUPABASE_URL') || '';
-        elements.cfgKey.value = localStorage.getItem('APP_SUPABASE_ANON_KEY') || '';
-        elements.configModal.classList.add('active');
-    });
+            if (elements.cfgUrl) elements.cfgUrl.value = localStorage.getItem('APP_SUPABASE_URL') || '';
+            if (elements.cfgKey) elements.cfgKey.value = localStorage.getItem('APP_SUPABASE_ANON_KEY') || '';
+            if (elements.configModal) elements.configModal.classList.add('active');
+        });
+    }
 
-    elements.btnCloseConfig.addEventListener('click', () => {
-        elements.configModal.classList.remove('active');
-    });
+    if (elements.btnCloseConfig) {
+        elements.btnCloseConfig.addEventListener('click', () => {
+            if (elements.configModal) elements.configModal.classList.remove('active');
+        });
+    }
 
-    elements.formConfig.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const url = elements.cfgUrl.value.trim();
-        const key = elements.cfgKey.value.trim();
-        window.DataService.saveCredentials(url, key);
-    });
+    if (elements.formConfig) {
+        elements.formConfig.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const url = elements.cfgUrl.value.trim();
+            const key = elements.cfgKey.value.trim();
+            window.DataService.saveCredentials(url, key);
+        });
+    }
 
-    elements.btnResetConfig.addEventListener('click', () => {
-        if (confirm('Reset kredensial Supabase ke bawaan file?')) {
-            window.DataService.clearCredentials();
-        }
-    });
+    if (elements.btnResetConfig) {
+        elements.btnResetConfig.addEventListener('click', () => {
+            if (confirm('Reset kredensial Supabase ke bawaan file?')) {
+                window.DataService.clearCredentials();
+            }
+        });
+    }
 
     // Close modal on click outside
     window.addEventListener('click', (e) => {
         if (e.target === elements.scannerModal) stopScanner();
         if (e.target === elements.resultModal) elements.resultModal.classList.remove('active');
-        if (e.target === elements.configModal) elements.configModal.classList.remove('active');
+        if (elements.configModal && e.target === elements.configModal) elements.configModal.classList.remove('active');
     });
 
     // Run on page ready

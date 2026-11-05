@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem QR Code Kunjungan 9 Program Studi</title>
-    <meta name="description" content="Aplikasi pencatatan kunjungan siswa ke 9 stand Program Studi kegiatan promosi kampus.">
-    <meta name="theme-color" content="#090B10">
+    <title>Kunjungan 9 Program Studi - Universitas Satya Terra Bhinneka</title>
+    <meta name="description" content="Aplikasi pencatatan kunjungan siswa ke 9 stand Program Studi Universitas Satya Terra Bhinneka.">
+    <meta name="theme-color" content="#026CB6">
 
     <!-- Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,22 +31,10 @@
     <!-- Main Container -->
     <div class="app-container">
 
-        <!-- Top Header Navigation -->
+        <!-- Top Header: Logo Resmi ST Bhinneka -->
         <header class="header-top">
-            <div class="brand">
-                <div class="brand-icon">🎓</div>
-                <div>
-                    <h1 class="brand-title">Pesona Pendidikan</h1>
-                    <p class="brand-subtitle">Kunjungan 9 Program Studi</p>
-                </div>
-            </div>
-            <div class="header-actions">
-                <button id="btnOpenConfig" class="btn-icon-subtle" title="Pengaturan Koneksi Supabase">
-                    ⚙️ <span class="hide-mobile">Koneksi</span>
-                </button>
-                <a href="admin.html" class="btn-icon-subtle">
-                    📊 <span class="hide-mobile">Admin</span>
-                </a>
+            <div class="brand-centered">
+                <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka - Universitas Satya Terra Bhinneka" class="brand-logo-img">
             </div>
         </header>
 
@@ -108,7 +96,7 @@
                         <div id="studentSchool" class="profile-school">Asal Sekolah</div>
                     </div>
                 </div>
-                <button id="btnSwitchStudent" class="btn-icon-subtle" title="Ganti Siswa / Keluar" style="font-size: 0.75rem;">
+                <button id="btnSwitchStudent" class="btn-icon-subtle" title="Ganti Siswa / Keluar">
                     🔄 Ganti Siswa
                 </button>
             </div>
@@ -139,7 +127,7 @@
                     <div class="completion-icon">🏆</div>
                     <div class="completion-text">
                         <h4>Luar Biasa! Semua Stand Telah Dikunjungi!</h4>
-                        <p>Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia untuk mengambil hadiah/merchandise!</p>
+                        <p>Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia untuk mengambil merchandise & hadiah!</p>
                     </div>
                 </div>
             </section>
@@ -176,7 +164,7 @@
         <!-- Loading State Indicator -->
         <div id="loadingView" style="text-align: center; padding: 4rem 1rem;">
             <div class="spinner" style="width: 36px; height: 36px; border-width: 3px;"></div>
-            <p style="margin-top: 1rem; color: #94A3B8; font-size: 0.9rem;">Memuat data kunjungan...</p>
+            <p style="margin-top: 1rem; color: #026CB6; font-size: 0.9rem; font-weight: 600;">Memuat data kunjungan...</p>
         </div>
 
     </div>
@@ -188,7 +176,7 @@
         <div class="modal-dialog">
             <div class="modal-header">
                 <h3 class="modal-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#026CB6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 7V4h3"></path>
                         <path d="M20 7V4h-3"></path>
                         <path d="M4 17v3h3"></path>
@@ -237,41 +225,8 @@
         </div>
     </div>
 
-    <!-- ===================================================================
-         MODAL: PENGATURAN SUPABASE CREDENTIALS
-         =================================================================== -->
-    <div id="configModal" class="modal-overlay">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h3 class="modal-title">⚙️ Konfigurasi Supabase</h3>
-                <button id="btnCloseConfig" class="btn-close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
-                    Hubungkan aplikasi ini ke project Supabase Anda. Dapatkan URL & Anon Key dari <strong>Supabase Dashboard &rarr; Project Settings &rarr; API</strong>.
-                </p>
-                <div id="configStatusBadge" style="margin-bottom: 1rem; padding: 0.5rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;"></div>
-                <form id="formConfig">
-                    <div class="form-group">
-                        <label class="form-label">Project URL</label>
-                        <input type="url" id="cfgUrl" class="form-control" style="padding-left: 1rem;" placeholder="https://xyzcompany.supabase.co" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Anon / Public API Key</label>
-                        <input type="text" id="cfgKey" class="form-control" style="padding-left: 1rem;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." required>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-                        <button type="submit" class="btn-primary" style="margin-top: 0; flex: 1;">Simpan & Muat Ulang</button>
-                        <button type="button" id="btnResetConfig" class="btn-icon-subtle" style="padding: 0 1rem;">Reset</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Application Logic -->
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
-
