@@ -24,6 +24,7 @@
         btnLogoutAdmin: document.getElementById('btnLogoutAdmin'),
         btnRefreshData: document.getElementById('btnRefreshData'),
         btnExportExcel: document.getElementById('btnExportExcel'),
+        btnDownloadAllQR: document.getElementById('btnDownloadAllQR'),
         btnPrintQRCards: document.getElementById('btnPrintQRCards'),
 
         // Stats Overview
@@ -502,7 +503,10 @@
                 <div class="printable-qr-box" id="${qrBoxId}"></div>
 
                 <div class="printable-footer">
-                    <p style="font-weight: 800; color: #1E293B; font-size: 0.95rem;">Scan untuk Catat Kunjungan</p>
+                    <p style="font-weight: 800; color: #1E293B; font-size: 0.95rem; margin-bottom: 0.65rem;">Scan untuk Catat Kunjungan</p>
+                    <button class="btn-admin btn-download-qr no-print" data-code="${prodi.code}" style="background: #F0F7FD; color: #026CB6; border: 1.5px solid #BAE6FD; padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; border-radius: 8px; width: 100%; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                        📥 Unduh Gambar QR
+                    </button>
                 </div>
             `;
 
@@ -514,14 +518,98 @@
                 if (qrContainer && window.QRCode) {
                     new QRCode(qrContainer, {
                         text: qrUrl,
-                        width: 160,
-                        height: 160,
+                        width: 180,
+                        height: 180,
                         colorDark: "#0B0E14",
                         colorLight: "#FFFFFF",
                         correctLevel: QRCode.CorrectLevel.H
                     });
                 }
             }, 100);
+        });
+
+        // Event listener unduh per card
+        setTimeout(() => {
+            document.querySelectorAll('.btn-download-qr').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const code = btn.getAttribute('data-code');
+                    const prodi = window.PRODI_MASTER_DATA.find(p => p.code === code);
+                    if (prodi) downloadSingleQRCode(prodi);
+                });
+            });
+        }, 300);
+    }
+
+    // Fungsi Unduh Gambar QR Satuan Berkualitas Tinggi
+    function downloadSingleQRCode(prodi) {
+        const qrContainer = document.getElementById(`qr-canvas-${prodi.code}`);
+        if (!qrContainer) return;
+
+        const srcCanvas = qrContainer.querySelector('canvas');
+        const img = qrContainer.querySelector('img');
+
+        // Buat canvas beresolusi tinggi (600x750 px)
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = 600;
+        exportCanvas.height = 750;
+        const ctx = exportCanvas.getContext('2d');
+
+        // Background putih bersih
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, 600, 750);
+
+        // Header Title Nama Prodi
+        ctx.fillStyle = prodi.color || '#026CB6';
+        ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(prodi.name, 300, 80);
+
+        // Subtitle Universitas
+        ctx.fillStyle = '#64748B';
+        ctx.font = '600 20px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Universitas Satya Terra Bhinneka', 300, 118);
+
+        // Gambar QR Code di tengah (skala tajam 400x400)
+        const qrSize = 400;
+        const qrX = (600 - qrSize) / 2;
+        const qrY = 160;
+
+        if (srcCanvas) {
+            ctx.drawImage(srcCanvas, qrX, qrY, qrSize, qrSize);
+        } else if (img && img.src) {
+            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+        }
+
+        // Footer Keterangan
+        ctx.fillStyle = '#0F172A';
+        ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Scan untuk Catat Kunjungan', 300, 630);
+
+        ctx.fillStyle = '#94A3B8';
+        ctx.font = '600 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Pesona Pendidikan 2026', 300, 670);
+
+        // Trigger Download File PNG
+        const link = document.createElement('a');
+        link.download = `QR_${prodi.name.replace(/\s+/g, '_')}_ST_Bhinneka.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast(`QR Code ${prodi.name} berhasil diunduh! 📥`, 'success');
+    }
+
+    // Unduh Semua QR Sekaligus
+    if (elements.btnDownloadAllQR) {
+        elements.btnDownloadAllQR.addEventListener('click', () => {
+            showToast('Mulai mengunduh seluruh 9 QR Code...', 'info', 2500);
+            window.PRODI_MASTER_DATA.forEach((prodi, idx) => {
+                setTimeout(() => {
+                    downloadSingleQRCode(prodi);
+                }, idx * 350);
+            });
         });
     }
 
