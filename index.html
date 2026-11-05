@@ -123,12 +123,32 @@
                     <div id="progressBarFill" class="progress-bar-fill"></div>
                 </div>
 
-                <!-- Completion Banner (Show when 9/9) -->
+                <!-- Completion Banner & Souvenir Voucher (Show when 9/9) -->
                 <div id="completionBanner" class="completion-banner">
-                    <div class="completion-icon">🏆</div>
-                    <div class="completion-text">
-                        <h4>Luar Biasa! Semua Stand Telah Dikunjungi!</h4>
-                        <p>Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia untuk mengambil merchandise & hadiah!</p>
+                    <div class="completion-top-bar">
+                        <div class="completion-icon" id="souvenirBannerIcon">🏆</div>
+                        <div class="completion-text">
+                            <h4 id="souvenirBannerTitle">Luar Biasa! Semua Stand Telah Dikunjungi!</h4>
+                            <p id="souvenirBannerDesc">Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia di Stand Admin untuk mengambil merchandise &amp; hadiah!</p>
+                        </div>
+                    </div>
+
+                    <!-- Digital Souvenir Voucher Box -->
+                    <div id="souvenirVoucherBox" class="souvenir-voucher-box">
+                        <div class="voucher-header">
+                            <span class="voucher-tag">KUPON SOUVENIR STAND ADMIN</span>
+                            <span id="souvenirStatusBadge" class="voucher-status-pill status-pending">🎁 Belum Diambil</span>
+                        </div>
+                        <div class="voucher-info">
+                            <div class="voucher-student" id="voucherStudentName">Nama Siswa</div>
+                            <div class="voucher-meta" id="voucherStudentSchool">Asal Sekolah</div>
+                        </div>
+                        <div class="voucher-footer">
+                            <span id="voucherActionNote" style="font-size: 0.75rem; color: #E0F2FE;">Tunjukkan ke Stand Admin untuk klaim souvenir</span>
+                            <button type="button" id="btnCheckSouvenirStatus" class="btn-check-souvenir" title="Periksa status verifikasi souvenir">
+                                🔄 Cek Status
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>

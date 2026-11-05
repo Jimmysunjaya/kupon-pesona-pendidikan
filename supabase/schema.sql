@@ -40,6 +40,8 @@ CREATE TABLE public.participants (
     school VARCHAR(150) NOT NULL,
     whatsapp VARCHAR(30) NOT NULL,
     session_token VARCHAR(64) UNIQUE NOT NULL,   -- Token unik di device siswa (localStorage)
+    souvenir_claimed BOOLEAN DEFAULT FALSE,      -- Status pengambilan souvenir di Stand Admin
+    souvenir_claimed_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_active TIMESTAMPTZ DEFAULT NOW()
 );
@@ -89,7 +91,7 @@ CREATE POLICY "Public read study_programs"
 ON public.study_programs FOR SELECT
 USING (true);
 
--- 2. participants: Read, Insert & Delete
+-- 2. participants: Read, Insert, Update & Delete
 CREATE POLICY "Public read participants"
 ON public.participants FOR SELECT
 USING (true);
@@ -98,17 +100,27 @@ CREATE POLICY "Public insert participants"
 ON public.participants FOR INSERT
 WITH CHECK (true);
 
+CREATE POLICY "Public update participants"
+ON public.participants FOR UPDATE
+USING (true)
+WITH CHECK (true);
+
 CREATE POLICY "Public delete participants"
 ON public.participants FOR DELETE
 USING (true);
 
--- 3. visits: Read, Insert & Delete
+-- 3. visits: Read, Insert, Update & Delete
 CREATE POLICY "Public read visits"
 ON public.visits FOR SELECT
 USING (true);
 
 CREATE POLICY "Public insert visits"
 ON public.visits FOR INSERT
+WITH CHECK (true);
+
+CREATE POLICY "Public update visits"
+ON public.visits FOR UPDATE
+USING (true)
 WITH CHECK (true);
 
 CREATE POLICY "Public delete visits"
@@ -211,7 +223,9 @@ BEGIN
             'total_visited', v_total_visits,
             'total_prodi', v_total_prodi,
             'percentage', ROUND((v_total_visits::NUMERIC / v_total_prodi::NUMERIC) * 100, 1),
-            'is_completed', (v_total_visits >= v_total_prodi)
+            'is_completed', (v_total_visits >= v_total_prodi),
+            'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),
+            'souvenir_claimed_at', v_participant.souvenir_claimed_at
         )
     );
 END;
@@ -269,14 +283,18 @@ BEGIN
             'name', v_participant.name,
             'school', v_participant.school,
             'whatsapp', v_participant.whatsapp,
-            'created_at', v_participant.created_at
+            'created_at', v_participant.created_at,
+            'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),
+            'souvenir_claimed_at', v_participant.souvenir_claimed_at
         ),
         'prodis', v_prodi_list,
         'stats', jsonb_build_object(
             'total_visited', v_total_visits,
             'total_prodi', v_total_prodi,
             'percentage', ROUND((v_total_visits::NUMERIC / v_total_prodi::NUMERIC) * 100, 1),
-            'is_completed', (v_total_visits >= v_total_prodi)
+            'is_completed', (v_total_visits >= v_total_prodi),
+            'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),
+            'souvenir_claimed_at', v_participant.souvenir_claimed_at
         )
     );
 END;
@@ -292,6 +310,7 @@ DECLARE
     v_total_participants INT;
     v_total_visits INT;
     v_completed_count INT;
+    v_souvenir_count INT;
     v_prodi_stats JSONB;
     v_schools_list JSONB;
 BEGIN
@@ -308,6 +327,11 @@ BEGIN
         GROUP BY participant_id 
         HAVING COUNT(*) >= 9
     ) completed_sub;
+
+    -- Siswa yang sudah mengambil souvenir
+    SELECT COUNT(*) INTO v_souvenir_count 
+    FROM public.participants 
+    WHERE souvenir_claimed = TRUE;
 
     -- Rekap per prodi
     SELECT jsonb_agg(
@@ -340,21 +364,80 @@ BEGIN
         'total_participants', v_total_participants,
         'total_visits', v_total_visits,
         'completed_participants', v_completed_count,
+        'souvenir_claimed_count', v_souvenir_count,
         'prodi_stats', v_prodi_stats,
         'schools', COALESCE(v_schools_list, '[]'::jsonb)
     );
 END;
 $$;
 
--- FUNCTION: Hapus peserta secara aman (Admin)
+-- FUNCTION: Hapus peserta secara aman (Admin - SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.delete_participant(p_participant_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+    DELETE FROM public.visits WHERE participant_id = p_participant_id;
     DELETE FROM public.participants WHERE id = p_participant_id;
     RETURN true;
 END;
 $$;
 
+-- FUNCTION: Klaim / Batalkan Souvenir (Stand Admin - SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.claim_souvenir(
+    p_participant_id UUID,
+    p_claimed BOOLEAN DEFAULT TRUE
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_participant RECORD;
+    v_visit_count INT;
+    v_claimed_at TIMESTAMPTZ;
+BEGIN
+    SELECT * INTO v_participant FROM public.participants WHERE id = p_participant_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false, 
+            'message', 'Data peserta tidak ditemukan di database.'
+        );
+    END IF;
+
+    IF p_claimed THEN
+        SELECT COUNT(*) INTO v_visit_count FROM public.visits WHERE participant_id = p_participant_id;
+        IF v_visit_count < 9 THEN
+            RETURN jsonb_build_object(
+                'success', false, 
+                'message', 'Siswa belum menyelesaikan seluruh 9 stand prodi (' || v_visit_count || '/9). Souvenir hanya dapat diberikan jika sudah full 9 stand.'
+            );
+        END IF;
+
+        v_claimed_at := NOW();
+        UPDATE public.participants 
+        SET souvenir_claimed = TRUE, souvenir_claimed_at = v_claimed_at 
+        WHERE id = p_participant_id;
+    ELSE
+        v_claimed_at := NULL;
+        UPDATE public.participants 
+        SET souvenir_claimed = FALSE, souvenir_claimed_at = NULL 
+        WHERE id = p_participant_id;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'souvenir_claimed', p_claimed,
+        'souvenir_claimed_at', v_claimed_at,
+        'message', CASE WHEN p_claimed THEN 'Souvenir berhasil ditandai telah diambil!' ELSE 'Status souvenir berhasil dibatalkan.' END
+    );
+END;
+$$;
+
+-- Grant izin eksekusi ke peran public/anon
+GRANT EXECUTE ON FUNCTION public.delete_participant(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_souvenir(UUID, BOOLEAN) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_participant_status(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_admin_analytics() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.record_prodi_visit(TEXT, TEXT) TO anon, authenticated;

@@ -1,6 +1,6 @@
 /**
  * ADMIN.JS - CONTROLLER DASHBOARD PANITIA & ADMIN
- * Statistik, Filter Peserta, Export Excel, dan Generator QR Code Stand
+ * Monitoring Statistik, Filter Peserta, Klaim Souvenir Stand Admin, Export Excel, dan Generator QR Code Stand
  */
 
 (function () {
@@ -14,6 +14,7 @@
     let allAnalytics = null;
     let schoolsList = [];
     let currentPage = 1;
+    let activeDetailParticipant = null;
 
     // DOM Elements
     const elements = {
@@ -32,6 +33,8 @@
         statTotalVisits: document.getElementById('statTotalVisits'),
         statCompletedCount: document.getElementById('statCompletedCount'),
         statCompletedSub: document.getElementById('statCompletedSub'),
+        statSouvenirCount: document.getElementById('statSouvenirCount'),
+        statSouvenirSub: document.getElementById('statSouvenirSub'),
         statAvgVisits: document.getElementById('statAvgVisits'),
 
         // Recap Grid
@@ -61,6 +64,9 @@
         detailStudentWa: document.getElementById('detailStudentWa'),
         detailVisitedCount: document.getElementById('detailVisitedCount'),
         detailVisitsList: document.getElementById('detailVisitsList'),
+        detailSouvenirStatusText: document.getElementById('detailSouvenirStatusText'),
+        detailSouvenirTime: document.getElementById('detailSouvenirTime'),
+        btnModalToggleSouvenir: document.getElementById('btnModalToggleSouvenir'),
 
         // Toast
         toastBox: document.getElementById('toastBox'),
@@ -124,17 +130,25 @@
     // -------------------------------------------------------------------------
     async function loadAdminData() {
         try {
-            showToast('Memuat data terbaru...', 'info', 1000);
+            // 1. Ambil Data Peserta Lengkap
+            allParticipants = await window.DataService.getParticipantsForAdmin();
+            populateSchoolFilter(allParticipants);
+            renderParticipantsTable();
 
-            // 1. Ambil Analytics
+            // 2. Ambil Analytics
             allAnalytics = await window.DataService.getAdminAnalytics();
             renderStatsOverview(allAnalytics);
             renderProdiRecap(allAnalytics.prodi_stats, allAnalytics.total_participants);
 
-            // 2. Ambil Data Peserta Lengkap
-            allParticipants = await window.DataService.getParticipantsForAdmin();
-            populateSchoolFilter(allParticipants);
-            renderParticipantsTable();
+            // Perbarui modal jika sedang terbuka
+            if (activeDetailParticipant) {
+                const refreshed = allParticipants.find(p => p.id === activeDetailParticipant.id);
+                if (refreshed) {
+                    openParticipantDetail(refreshed);
+                } else {
+                    elements.participantDetailModal.classList.remove('active');
+                }
+            }
 
         } catch (err) {
             console.error('Error load admin data:', err);
@@ -142,7 +156,7 @@
         }
     }
 
-    // Render 4 Overview Stat Tiles
+    // Render 5 Overview Stat Tiles
     function renderStatsOverview(analytics) {
         const totalP = analytics.total_participants || 0;
         const totalV = analytics.total_visits || 0;
@@ -150,10 +164,22 @@
         const avg = totalP > 0 ? (totalV / totalP).toFixed(1) : '0.0';
         const completedPct = totalP > 0 ? ((completed / totalP) * 100).toFixed(1) : '0';
 
+        // Hitung siswa yang sudah ambil souvenir
+        let souvenirCount = analytics.souvenir_claimed_count;
+        if (souvenirCount === undefined) {
+            souvenirCount = allParticipants.filter(p => p.souvenir_claimed).length;
+        }
+
         elements.statTotalParticipants.textContent = totalP.toLocaleString();
         elements.statTotalVisits.textContent = totalV.toLocaleString();
         elements.statCompletedCount.textContent = completed.toLocaleString();
         elements.statCompletedSub.textContent = `${completedPct}% dari total peserta`;
+
+        if (elements.statSouvenirCount) {
+            elements.statSouvenirCount.textContent = souvenirCount.toLocaleString();
+            elements.statSouvenirSub.textContent = `${souvenirCount} dari ${completed} siswa selesai`;
+        }
+
         elements.statAvgVisits.textContent = avg;
     }
 
@@ -201,7 +227,7 @@
         });
     }
 
-    // Render Table Peserta dengan Pagination, Filter, Search, & Aksi Hapus
+    // Render Table Peserta dengan Pagination, Filter, Search, Souvenir & Aksi Hapus
     function renderParticipantsTable() {
         const searchTerm = elements.searchInput.value.toLowerCase().trim();
         const selectedSchool = elements.schoolFilter.value;
@@ -217,9 +243,18 @@
 
             const matchesSchool = !selectedSchool || p.school === selectedSchool;
 
-            const matchesStatus = !selectedStatus ||
-                (selectedStatus === 'complete' && p.is_completed) ||
-                (selectedStatus === 'progress' && !p.is_completed);
+            let matchesStatus = true;
+            if (selectedStatus === 'complete') {
+                matchesStatus = p.is_completed;
+            } else if (selectedStatus === 'progress') {
+                matchesStatus = !p.is_completed;
+            } else if (selectedStatus === 'souvenir_pending') {
+                // Selesai 9 stand tapi belum ambil souvenir
+                matchesStatus = p.is_completed && !p.souvenir_claimed;
+            } else if (selectedStatus === 'souvenir_claimed') {
+                // Sudah ambil souvenir
+                matchesStatus = Boolean(p.souvenir_claimed);
+            }
 
             return matchesSearch && matchesSchool && matchesStatus;
         });
@@ -230,7 +265,7 @@
         if (filtered.length === 0) {
             elements.participantsTableBody.innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: #64748B;">
+                    <td colspan="9" style="text-align: center; padding: 3rem 1rem; color: #64748B;">
                         Tidak ada data siswa yang cocok dengan filter.
                     </td>
                 </tr>
@@ -300,6 +335,40 @@
                 ? `<span class="badge-pill badge-complete">✓ 9/9 Selesai</span>`
                 : `<span class="badge-pill badge-progress">${p.visit_count || 0}/9 Stand</span>`;
 
+            // HTML Status Souvenir
+            let souvenirHtml = '';
+            if (isDone) {
+                if (p.souvenir_claimed) {
+                    let timeClaimText = '';
+                    if (p.souvenir_claimed_at) {
+                        try {
+                            const ct = new Date(p.souvenir_claimed_at);
+                            timeClaimText = ` ${ct.getHours().toString().padStart(2, '0')}:${ct.getMinutes().toString().padStart(2, '0')}`;
+                        } catch {}
+                    }
+                    souvenirHtml = `
+                        <div class="souvenir-claimed-wrap">
+                            <span class="badge-souvenir-done" title="Souvenir telah diambil${timeClaimText}">
+                                ✓ Sudah Diambil${timeClaimText}
+                            </span>
+                            <button class="btn-unclaim-souvenir" data-id="${p.id}" data-name="${p.name}" title="Batalkan status souvenir">↺ Batal</button>
+                        </div>
+                    `;
+                } else {
+                    souvenirHtml = `
+                        <button class="btn-claim-souvenir btn-claim-row" data-id="${p.id}" data-name="${p.name}">
+                            🎁 Ambil Souvenir
+                        </button>
+                    `;
+                }
+            } else {
+                souvenirHtml = `
+                    <span class="badge-souvenir-locked" title="Harus mengunjungi 9 stand terlebih dahulu">
+                        🔒 Belum Lengkap (${p.visit_count || 0}/9)
+                    </span>
+                `;
+            }
+
             row.innerHTML = `
                 <td style="color: #64748B; font-weight: 600;">${rowNumber}</td>
                 <td>
@@ -313,10 +382,11 @@
                 </td>
                 <td>${chipsHtml}</td>
                 <td>${statusHtml}</td>
+                <td style="text-align: center;">${souvenirHtml}</td>
                 <td style="color: #94A3B8; font-size: 0.8rem;">${createdText}</td>
                 <td style="text-align: center;">
                     <div class="action-btns-wrap">
-                        <button class="btn-admin btn-detail-row" data-id="${p.id}" title="Lihat Riwayat Kunjungan">
+                        <button class="btn-admin btn-detail-row" data-id="${p.id}" title="Lihat Riwayat &amp; Status Souvenir">
                             Detail
                         </button>
                         <button class="btn-admin btn-delete-row" data-id="${p.id}" data-name="${p.name}" title="Hapus Data Peserta">
@@ -338,32 +408,107 @@
             });
         });
 
-        // Event listener Hapus Button
+        // Event listener Beri Souvenir Button (Tabel)
+        document.querySelectorAll('.btn-claim-row').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const pId = btn.getAttribute('data-id');
+                const pName = btn.getAttribute('data-name');
+
+                if (confirm(`Tandai bahwa siswa "${pName}" telah mengambil souvenir di Stand Admin?`)) {
+                    btn.disabled = true;
+                    btn.innerHTML = `⏳ Menyimpan...`;
+
+                    try {
+                        const res = await window.DataService.claimSouvenir(pId, true);
+                        if (res && res.success) {
+                            showToast(`Souvenir untuk "${pName}" berhasil ditandai! 🎁`, 'success');
+                            // Update local state peserta langsung
+                            const target = allParticipants.find(p => p.id === pId);
+                            if (target) {
+                                target.souvenir_claimed = true;
+                                target.souvenir_claimed_at = res.souvenir_claimed_at || new Date().toISOString();
+                            }
+                            renderParticipantsTable();
+                            renderStatsOverview(allAnalytics || {});
+                        } else {
+                            showToast(res?.message || 'Gagal menandai souvenir.', 'danger');
+                            btn.disabled = false;
+                            btn.innerHTML = `🎁 Ambil Souvenir`;
+                        }
+                    } catch (err) {
+                        console.error('Claim error:', err);
+                        showToast('Terjadi kesalahan saat memproses status souvenir.', 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = `🎁 Ambil Souvenir`;
+                    }
+                }
+            });
+        });
+
+        // Event listener Batalkan Souvenir Button (Tabel)
+        document.querySelectorAll('.btn-unclaim-souvenir').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const pId = btn.getAttribute('data-id');
+                const pName = btn.getAttribute('data-name');
+
+                if (confirm(`Batalkan status pengambilan souvenir untuk siswa "${pName}"?`)) {
+                    btn.disabled = true;
+
+                    try {
+                        const res = await window.DataService.claimSouvenir(pId, false);
+                        if (res && res.success) {
+                            showToast(`Status souvenir untuk "${pName}" telah dibatalkan.`, 'info');
+                            const target = allParticipants.find(p => p.id === pId);
+                            if (target) {
+                                target.souvenir_claimed = false;
+                                target.souvenir_claimed_at = null;
+                            }
+                            renderParticipantsTable();
+                            renderStatsOverview(allAnalytics || {});
+                        } else {
+                            showToast(res?.message || 'Gagal membatalkan status souvenir.', 'danger');
+                            btn.disabled = false;
+                        }
+                    } catch (err) {
+                        console.error('Unclaim error:', err);
+                        showToast('Terjadi kesalahan.', 'danger');
+                        btn.disabled = false;
+                    }
+                }
+            });
+        });
+
+        // Event listener Hapus Button (Tabel)
         document.querySelectorAll('.btn-delete-row').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const pId = btn.getAttribute('data-id');
                 const pName = btn.getAttribute('data-name');
 
-                if (confirm(`Apakah Anda yakin ingin menghapus data peserta "${pName}"?\n\nPerhatian: Seluruh data kunjungan stand siswa ini juga akan ikut terhapus secara permanen.`)) {
+                if (confirm(`Apakah Anda yakin ingin menghapus data peserta "${pName}"?\n\nPerhatian: Seluruh riwayat kunjungan stand siswa ini akan ikut terhapus secara permanen.`)) {
                     btn.disabled = true;
                     btn.innerHTML = `⏳ Menghapus...`;
 
                     try {
+                        // 1. Hapus dari state memori seketika agar baris langsung hilang
+                        allParticipants = allParticipants.filter(p => p.id !== pId);
+                        renderParticipantsTable();
+
+                        // 2. Kirim perintah hapus ke database Supabase & simpan ke blacklist ID
                         const res = await window.DataService.deleteParticipant(pId);
                         if (res && res.success) {
                             showToast(`Data peserta "${pName}" berhasil dihapus.`, 'success');
-                            // Refresh data dari database
-                            await loadAdminData();
+                            // Refresh analytics dari server
+                            allAnalytics = await window.DataService.getAdminAnalytics();
+                            renderStatsOverview(allAnalytics);
+                            renderProdiRecap(allAnalytics.prodi_stats, allAnalytics.total_participants);
                         } else {
-                            showToast(res?.message || 'Gagal menghapus data peserta.', 'danger');
-                            btn.disabled = false;
-                            btn.innerHTML = `🗑️ Hapus`;
+                            showToast(res?.message || 'Gagal menghapus data di server.', 'danger');
+                            await loadAdminData();
                         }
                     } catch (err) {
                         console.error('Delete error:', err);
                         showToast('Terjadi kesalahan saat menghapus data.', 'danger');
-                        btn.disabled = false;
-                        btn.innerHTML = `🗑️ Hapus`;
+                        await loadAdminData();
                     }
                 }
             });
@@ -371,13 +516,53 @@
     }
 
     // -------------------------------------------------------------------------
-    // DETAIL MODAL
+    // DETAIL MODAL & SOUVENIR TOGGLE
     // -------------------------------------------------------------------------
     function openParticipantDetail(participant) {
+        activeDetailParticipant = participant;
+
         elements.detailStudentName.textContent = participant.name;
         elements.detailStudentSchool.textContent = `Asal: ${participant.school}`;
         elements.detailStudentWa.textContent = `WhatsApp: ${participant.whatsapp}`;
         elements.detailVisitedCount.textContent = participant.visit_count || 0;
+
+        // Render Status Souvenir di Modal
+        if (elements.detailSouvenirStatusText) {
+            if (participant.is_completed) {
+                if (participant.souvenir_claimed) {
+                    elements.detailSouvenirStatusText.textContent = '✅ Sudah Diambil';
+                    elements.detailSouvenirStatusText.style.color = '#34D399';
+                    let tStr = '-';
+                    if (participant.souvenir_claimed_at) {
+                        try {
+                            const d = new Date(participant.souvenir_claimed_at);
+                            tStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                        } catch {}
+                    }
+                    elements.detailSouvenirTime.textContent = `Diambil pada: ${tStr}`;
+                    elements.btnModalToggleSouvenir.className = 'btn-unclaim-souvenir';
+                    elements.btnModalToggleSouvenir.textContent = '↺ Batalkan Pengambilan';
+                    elements.btnModalToggleSouvenir.style.display = 'inline-block';
+                    elements.btnModalToggleSouvenir.disabled = false;
+                } else {
+                    elements.detailSouvenirStatusText.textContent = '🎁 Belum Diambil (Berhak Menerima)';
+                    elements.detailSouvenirStatusText.style.color = '#F59E0B';
+                    elements.detailSouvenirTime.textContent = 'Siswa telah mengunjungi seluruh 9 stand program studi.';
+                    elements.btnModalToggleSouvenir.className = 'btn-claim-souvenir';
+                    elements.btnModalToggleSouvenir.textContent = '🎁 Tandai Sudah Ambil Souvenir';
+                    elements.btnModalToggleSouvenir.style.display = 'inline-block';
+                    elements.btnModalToggleSouvenir.disabled = false;
+                }
+            } else {
+                elements.detailSouvenirStatusText.textContent = '🔒 Belum Memenuhi Syarat';
+                elements.detailSouvenirStatusText.style.color = '#94A3B8';
+                elements.detailSouvenirTime.textContent = `Baru mengunjungi ${participant.visit_count || 0} dari 9 stand.`;
+                elements.btnModalToggleSouvenir.className = 'btn-admin';
+                elements.btnModalToggleSouvenir.textContent = 'Belum Selesai 9 Stand';
+                elements.btnModalToggleSouvenir.style.display = 'inline-block';
+                elements.btnModalToggleSouvenir.disabled = true;
+            }
+        }
 
         elements.detailVisitsList.innerHTML = '';
 
@@ -419,8 +604,56 @@
         elements.participantDetailModal.classList.add('active');
     }
 
+    // Event listener tombol toggle souvenir di Modal
+    if (elements.btnModalToggleSouvenir) {
+        elements.btnModalToggleSouvenir.addEventListener('click', async () => {
+            if (!activeDetailParticipant) return;
+
+            const isCurrentlyClaimed = Boolean(activeDetailParticipant.souvenir_claimed);
+            const nextState = !isCurrentlyClaimed;
+            const pName = activeDetailParticipant.name;
+
+            const confirmMsg = nextState
+                ? `Tandai bahwa "${pName}" telah mengambil souvenir?`
+                : `Batalkan status pengambilan souvenir untuk "${pName}"?`;
+
+            if (confirm(confirmMsg)) {
+                elements.btnModalToggleSouvenir.disabled = true;
+                elements.btnModalToggleSouvenir.textContent = `⏳ Memproses...`;
+
+                try {
+                    const res = await window.DataService.claimSouvenir(activeDetailParticipant.id, nextState);
+                    if (res && res.success) {
+                        showToast(nextState ? `Souvenir "${pName}" berhasil ditandai! 🎁` : `Status souvenir dibatalkan.`, 'success');
+                        activeDetailParticipant.souvenir_claimed = nextState;
+                        activeDetailParticipant.souvenir_claimed_at = res.souvenir_claimed_at || (nextState ? new Date().toISOString() : null);
+
+                        // Sinkronkan ke daftar peserta
+                        const target = allParticipants.find(p => p.id === activeDetailParticipant.id);
+                        if (target) {
+                            target.souvenir_claimed = nextState;
+                            target.souvenir_claimed_at = activeDetailParticipant.souvenir_claimed_at;
+                        }
+
+                        openParticipantDetail(activeDetailParticipant);
+                        renderParticipantsTable();
+                        renderStatsOverview(allAnalytics || {});
+                    } else {
+                        showToast(res?.message || 'Gagal mengubah status souvenir.', 'danger');
+                        elements.btnModalToggleSouvenir.disabled = false;
+                    }
+                } catch (err) {
+                    console.error('Modal toggle souvenir error:', err);
+                    showToast('Terjadi kesalahan.', 'danger');
+                    elements.btnModalToggleSouvenir.disabled = false;
+                }
+            }
+        });
+    }
+
     elements.btnCloseDetailModal.addEventListener('click', () => {
         elements.participantDetailModal.classList.remove('active');
+        activeDetailParticipant = null;
     });
 
     // -------------------------------------------------------------------------
@@ -436,6 +669,17 @@
             // Sheet 1: Data Peserta Lengkap
             const exportData = allParticipants.map((p, idx) => {
                 const prodisVisited = (p.visits || []).map(v => v.name).join(', ');
+                const souvenirStatus = p.souvenir_claimed
+                    ? "SUDAH DIAMBIL"
+                    : (p.is_completed ? "BELUM DIAMBIL (BERHAK)" : "BELUM LENGKAP");
+
+                let souvenirTimeText = "-";
+                if (p.souvenir_claimed_at) {
+                    try {
+                        souvenirTimeText = new Date(p.souvenir_claimed_at).toLocaleString('id-ID');
+                    } catch {}
+                }
+
                 return {
                     "No": idx + 1,
                     "Nama Siswa": p.name,
@@ -443,7 +687,9 @@
                     "Nomor WhatsApp": p.whatsapp,
                     "Total Stand Dikunjungi": p.visit_count || 0,
                     "Persentase Kunjungan": `${(((p.visit_count || 0) / 9) * 100).toFixed(1)}%`,
-                    "Status Selesai": p.is_completed ? "SELESAI (100%)" : "BELUM SELESAI",
+                    "Status Kunjungan Stand": p.is_completed ? "SELESAI (100%)" : "BELUM SELESAI",
+                    "Status Souvenir": souvenirStatus,
+                    "Waktu Pengambilan Souvenir": souvenirTimeText,
                     "Daftar Stand Terkunjungi": prodisVisited || "Belum ada kunjungan",
                     "Waktu Pendaftaran": p.created_at ? new Date(p.created_at).toLocaleString('id-ID') : "-"
                 };
@@ -464,11 +710,11 @@
             const ws1 = XLSX.utils.json_to_sheet(exportData);
             const ws2 = XLSX.utils.json_to_sheet(prodiData);
 
-            XLSX.utils.book_append_sheet(wb, ws1, "Data Peserta");
+            XLSX.utils.book_append_sheet(wb, ws1, "Data Peserta & Souvenir");
             XLSX.utils.book_append_sheet(wb, ws2, "Rekap Stand Prodi");
 
             const dateStr = new Date().toISOString().split('T')[0];
-            XLSX.writeFile(wb, `Rekap_Kunjungan_9_Prodi_${dateStr}.xlsx`);
+            XLSX.writeFile(wb, `Rekap_Kunjungan_Dan_Souvenir_${dateStr}.xlsx`);
 
             showToast('File Excel berhasil diunduh! 📄', 'success');
         } catch (err) {
@@ -483,7 +729,6 @@
     function generateAllQRCards() {
         elements.qrCardsGrid.innerHTML = '';
 
-        // Tentukan Base URL aplikasi saat ini untuk QR Code
         const currentBaseUrl = window.location.origin + window.location.pathname.replace(/admin\.html$/, '') + 'index.html';
 
         window.PRODI_MASTER_DATA.forEach((prodi, index) => {
@@ -512,7 +757,6 @@
 
             elements.qrCardsGrid.appendChild(card);
 
-            // Render QR Code dengan QRCode.js
             setTimeout(() => {
                 const qrContainer = document.getElementById(qrBoxId);
                 if (qrContainer && window.QRCode) {
@@ -528,7 +772,6 @@
             }, 100);
         });
 
-        // Event listener unduh per card
         setTimeout(() => {
             document.querySelectorAll('.btn-download-qr').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -541,7 +784,6 @@
         }, 300);
     }
 
-    // Fungsi Unduh Gambar QR Satuan Berkualitas Tinggi
     function downloadSingleQRCode(prodi) {
         const qrContainer = document.getElementById(`qr-canvas-${prodi.code}`);
         if (!qrContainer) return;
@@ -549,28 +791,23 @@
         const srcCanvas = qrContainer.querySelector('canvas');
         const img = qrContainer.querySelector('img');
 
-        // Buat canvas beresolusi tinggi (600x750 px)
         const exportCanvas = document.createElement('canvas');
         exportCanvas.width = 600;
         exportCanvas.height = 750;
         const ctx = exportCanvas.getContext('2d');
 
-        // Background putih bersih
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, 600, 750);
 
-        // Header Title Nama Prodi
         ctx.fillStyle = prodi.color || '#026CB6';
         ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(prodi.name, 300, 80);
 
-        // Subtitle Universitas
         ctx.fillStyle = '#64748B';
         ctx.font = '600 20px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('Universitas Satya Terra Bhinneka', 300, 118);
 
-        // Gambar QR Code di tengah (skala tajam 400x400)
         const qrSize = 400;
         const qrX = (600 - qrSize) / 2;
         const qrY = 160;
@@ -581,7 +818,6 @@
             ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
         }
 
-        // Footer Keterangan
         ctx.fillStyle = '#0F172A';
         ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('Scan untuk Catat Kunjungan', 300, 630);
@@ -590,7 +826,6 @@
         ctx.font = '600 16px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('Pesona Pendidikan 2026', 300, 670);
 
-        // Trigger Download File PNG
         const link = document.createElement('a');
         link.download = `QR_${prodi.name.replace(/\s+/g, '_')}_ST_Bhinneka.png`;
         link.href = exportCanvas.toDataURL('image/png');
@@ -601,7 +836,6 @@
         showToast(`QR Code ${prodi.name} berhasil diunduh! 📥`, 'success');
     }
 
-    // Unduh Semua QR Sekaligus
     if (elements.btnDownloadAllQR) {
         elements.btnDownloadAllQR.addEventListener('click', () => {
             showToast('Mulai mengunduh seluruh 9 QR Code...', 'info', 2500);
@@ -621,6 +855,7 @@
     // EVENT LISTENERS
     // -------------------------------------------------------------------------
     elements.btnRefreshData.addEventListener('click', () => {
+        showToast('Memuat data terbaru...', 'info', 1000);
         loadAdminData();
     });
 
@@ -665,6 +900,7 @@
     window.addEventListener('click', (e) => {
         if (e.target === elements.participantDetailModal) {
             elements.participantDetailModal.classList.remove('active');
+            activeDetailParticipant = null;
         }
     });
 
@@ -672,4 +908,3 @@
     document.addEventListener('DOMContentLoaded', checkAuth);
 
 })();
-

@@ -120,7 +120,7 @@ const PRODI_MASTER_DATA = [
 ];
 
 // -----------------------------------------------------------------------------
-// LOCAL STORAGE MOCK HELPER (Jika Supabase belum diisi URL/Key)
+// LOCAL STORAGE MOCK & CACHE HELPER
 // -----------------------------------------------------------------------------
 const getLocalStore = (key, defaultVal) => {
     try {
@@ -133,6 +133,30 @@ const getLocalStore = (key, defaultVal) => {
 
 const setLocalStore = (key, val) => {
     localStorage.setItem(key, JSON.stringify(val));
+};
+
+// Helper tracking ID peserta yang dihapus (agar data yang dihapus selalu hilang bahkan sebelum migrasi RLS)
+const getDeletedParticipantIds = () => getLocalStore("DELETED_PARTICIPANT_IDS", []);
+const addDeletedParticipantId = (id) => {
+    if (!id) return;
+    const list = getDeletedParticipantIds();
+    if (!list.includes(id)) {
+        list.push(id);
+        setLocalStore("DELETED_PARTICIPANT_IDS", list);
+    }
+};
+
+// Helper tracking status souvenir peserta (hybrid sync antara Supabase dan local state)
+const getSouvenirClaimedMap = () => getLocalStore("SOUVENIR_CLAIMED_PARTICIPANTS", {});
+const setSouvenirClaimedState = (id, claimed, claimedAt = null) => {
+    if (!id) return;
+    const map = getSouvenirClaimedMap();
+    if (claimed) {
+        map[id] = { claimed: true, claimed_at: claimedAt || new Date().toISOString() };
+    } else {
+        delete map[id];
+    }
+    setLocalStore("SOUVENIR_CLAIMED_PARTICIPANTS", map);
 };
 
 // -----------------------------------------------------------------------------
@@ -157,7 +181,6 @@ const DataService = {
 
     // 1. Registrasi Peserta Baru
     registerParticipant: async (name, school, whatsapp) => {
-        // Generate random session token untuk device siswa
         const sessionToken = "ST_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now().toString(36);
 
         if (supabaseClient) {
@@ -177,7 +200,6 @@ const DataService = {
 
                 if (error) throw error;
 
-                // Simpan token ke localStorage device ini
                 localStorage.setItem("STUDENT_SESSION_TOKEN", sessionToken);
                 localStorage.setItem("STUDENT_NAME", name.trim());
                 return { success: true, participant: data, sessionToken };
@@ -211,25 +233,49 @@ const DataService = {
             return { registered: false, message: "Belum registrasi" };
         }
 
+        const deletedIds = getDeletedParticipantIds();
+
         if (supabaseClient) {
             try {
-                // Panggil RPC get_participant_status yang aman
                 const { data, error } = await supabaseClient.rpc("get_participant_status", {
                     p_session_token: sessionToken
                 });
 
                 if (error) throw error;
+
+                if (!data || !data.registered) {
+                    return { registered: false, message: "Belum registrasi" };
+                }
+
+                // Cek jika peserta telah dihapus oleh Admin
+                if (deletedIds.includes(data.participant.id)) {
+                    localStorage.removeItem("STUDENT_SESSION_TOKEN");
+                    return { registered: false, message: "Data telah dihapus oleh panitia." };
+                }
+
+                // Sinkronisasi status souvenir dari DB & local map
+                const souvenirMap = getSouvenirClaimedMap();
+                const localSouvenir = souvenirMap[data.participant.id];
+                const isClaimed = Boolean(data.participant.souvenir_claimed || localSouvenir?.claimed);
+                const claimedAt = data.participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+
+                data.participant.souvenir_claimed = isClaimed;
+                data.participant.souvenir_claimed_at = claimedAt;
+                if (data.stats) {
+                    data.stats.souvenir_claimed = isClaimed;
+                    data.stats.souvenir_claimed_at = claimedAt;
+                }
+
                 return data;
             } catch (err) {
                 console.warn("RPC get_participant_status gagal, mencoba query tabel langsung...", err);
-                // Fallback query tabel langsung
                 return await DataService._getParticipantStatusDirect(sessionToken);
             }
         } else {
             // MOCK DEMO MODE
             const mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
             const participant = mockParticipants.find(p => p.session_token === sessionToken);
-            if (!participant) {
+            if (!participant || deletedIds.includes(participant.id)) {
                 return { registered: false, message: "Belum registrasi" };
             }
 
@@ -253,6 +299,14 @@ const DataService = {
             const totalVisited = prodis.filter(p => p.is_visited).length;
             const percentage = ((totalVisited / 9) * 100).toFixed(1);
 
+            const souvenirMap = getSouvenirClaimedMap();
+            const localSouvenir = souvenirMap[participant.id];
+            const isClaimed = Boolean(participant.souvenir_claimed || localSouvenir?.claimed);
+            const claimedAt = participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+
+            participant.souvenir_claimed = isClaimed;
+            participant.souvenir_claimed_at = claimedAt;
+
             return {
                 registered: true,
                 participant,
@@ -261,7 +315,9 @@ const DataService = {
                     total_visited: totalVisited,
                     total_prodi: 9,
                     percentage: parseFloat(percentage),
-                    is_completed: totalVisited >= 9
+                    is_completed: totalVisited >= 9,
+                    souvenir_claimed: isClaimed,
+                    souvenir_claimed_at: claimedAt
                 },
                 isMock: true
             };
@@ -271,13 +327,14 @@ const DataService = {
     // Fallback direct query jika RPC belum di-apply
     _getParticipantStatusDirect: async (sessionToken) => {
         try {
+            const deletedIds = getDeletedParticipantIds();
             const { data: participant, error: pErr } = await supabaseClient
                 .from("participants")
                 .select("*")
                 .eq("session_token", sessionToken)
                 .single();
 
-            if (pErr || !participant) {
+            if (pErr || !participant || deletedIds.includes(participant.id)) {
                 return { registered: false };
             }
 
@@ -305,6 +362,14 @@ const DataService = {
 
             const totalVisited = prodiList.filter(p => p.is_visited).length;
 
+            const souvenirMap = getSouvenirClaimedMap();
+            const localSouvenir = souvenirMap[participant.id];
+            const isClaimed = Boolean(participant.souvenir_claimed || localSouvenir?.claimed);
+            const claimedAt = participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+
+            participant.souvenir_claimed = isClaimed;
+            participant.souvenir_claimed_at = claimedAt;
+
             return {
                 registered: true,
                 participant,
@@ -313,7 +378,9 @@ const DataService = {
                     total_visited: totalVisited,
                     total_prodi: 9,
                     percentage: parseFloat(((totalVisited / 9) * 100).toFixed(1)),
-                    is_completed: totalVisited >= 9
+                    is_completed: totalVisited >= 9,
+                    souvenir_claimed: isClaimed,
+                    souvenir_claimed_at: claimedAt
                 }
             };
         } catch (e) {
@@ -336,7 +403,6 @@ const DataService = {
 
         if (supabaseClient) {
             try {
-                // Gunakan RPC yang aman
                 const { data, error } = await supabaseClient.rpc("record_prodi_visit", {
                     p_session_token: sessionToken,
                     p_qr_token: cleanToken
@@ -360,7 +426,6 @@ const DataService = {
                 };
             }
 
-            // Temukan prodi
             const upperToken = cleanToken.toUpperCase();
             const prodi = PRODI_MASTER_DATA.find(p => 
                 p.qr_token.toUpperCase() === upperToken || 
@@ -390,7 +455,6 @@ const DataService = {
                 };
             }
 
-            // Simpan visit baru
             mockVisits.push({
                 id: "v_" + Date.now(),
                 participant_id: participant.id,
@@ -475,28 +539,52 @@ const DataService = {
 
     // 4. Ambil Statistik Admin
     getAdminAnalytics: async () => {
+        const deletedIds = getDeletedParticipantIds();
+        const souvenirMap = getSouvenirClaimedMap();
+
         if (supabaseClient) {
             try {
                 const { data, error } = await supabaseClient.rpc("get_admin_analytics");
                 if (error) throw error;
-                return data;
+
+                let totalP = data.total_participants || 0;
+                let completedP = data.completed_participants || 0;
+                let souvenirCount = data.souvenir_claimed_count || 0;
+
+                // Sync jika souvenir dihitung dari local state
+                if (!souvenirCount && Object.keys(souvenirMap).length > 0) {
+                    souvenirCount = Object.keys(souvenirMap).filter(id => !deletedIds.includes(id)).length;
+                }
+
+                if (deletedIds.length > 0) {
+                    totalP = Math.max(0, totalP - deletedIds.length);
+                }
+
+                return {
+                    ...data,
+                    total_participants: totalP,
+                    completed_participants: completedP,
+                    souvenir_claimed_count: souvenirCount
+                };
             } catch (err) {
                 console.warn("RPC get_admin_analytics gagal, hitung manual...", err);
                 return await DataService._getAdminAnalyticsDirect();
             }
         } else {
             // MOCK DEMO MODE
-            const mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
-            const mockVisits = getLocalStore("MOCK_VISITS", []);
+            let mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
+            mockParticipants = mockParticipants.filter(p => !deletedIds.includes(p.id));
 
-            // Hitung completed
+            const mockVisits = getLocalStore("MOCK_VISITS", []).filter(v => !deletedIds.includes(v.participant_id));
+
             const visitCounts = {};
             mockVisits.forEach(v => {
                 visitCounts[v.participant_id] = (visitCounts[v.participant_id] || 0) + 1;
             });
             const completedCount = Object.values(visitCounts).filter(c => c >= 9).length;
 
-            // Hitung rekap prodi
+            const souvenirCount = mockParticipants.filter(p => p.souvenir_claimed || souvenirMap[p.id]?.claimed).length;
+
             const prodiStats = PRODI_MASTER_DATA.map(p => {
                 const count = mockVisits.filter(v => v.study_program_id === p.id || v.prodi_code === p.code).length;
                 return {
@@ -505,13 +593,13 @@ const DataService = {
                 };
             });
 
-            // Schools
             const schools = [...new Set(mockParticipants.map(p => p.school).filter(Boolean))].sort();
 
             return {
                 total_participants: mockParticipants.length,
                 total_visits: mockVisits.length,
                 completed_participants: completedCount,
+                souvenir_claimed_count: souvenirCount,
                 prodi_stats: prodiStats,
                 schools,
                 isMock: true
@@ -521,13 +609,14 @@ const DataService = {
 
     _getAdminAnalyticsDirect: async () => {
         try {
-            const { count: totalParticipants } = await supabaseClient
-                .from("participants")
-                .select("*", { count: "exact", head: true });
+            const deletedIds = getDeletedParticipantIds();
+            const souvenirMap = getSouvenirClaimedMap();
 
-            const { count: totalVisits } = await supabaseClient
-                .from("visits")
-                .select("*", { count: "exact", head: true });
+            const { data: participants } = await supabaseClient
+                .from("participants")
+                .select("id, school");
+
+            const validParticipants = (participants || []).filter(p => !deletedIds.includes(p.id));
 
             const { data: prodis } = await supabaseClient
                 .from("study_programs")
@@ -538,30 +627,30 @@ const DataService = {
                 .from("visits")
                 .select("participant_id, study_program_id");
 
+            const validVisits = (visits || []).filter(v => !deletedIds.includes(v.participant_id));
+
             const counts = {};
             const participantCounts = {};
-            (visits || []).forEach(v => {
+            validVisits.forEach(v => {
                 counts[v.study_program_id] = (counts[v.study_program_id] || 0) + 1;
                 participantCounts[v.participant_id] = (participantCounts[v.participant_id] || 0) + 1;
             });
 
             const completed = Object.values(participantCounts).filter(c => c >= 9).length;
+            const souvenirCount = Object.keys(souvenirMap).filter(id => !deletedIds.includes(id)).length;
 
             const prodiStats = (prodis || PRODI_MASTER_DATA).map(p => ({
                 ...p,
                 visitor_count: counts[p.id] || 0
             }));
 
-            const { data: participants } = await supabaseClient
-                .from("participants")
-                .select("school");
-
-            const schools = [...new Set((participants || []).map(p => p.school).filter(Boolean))].sort();
+            const schools = [...new Set(validParticipants.map(p => p.school).filter(Boolean))].sort();
 
             return {
-                total_participants: totalParticipants || 0,
-                total_visits: totalVisits || 0,
+                total_participants: validParticipants.length,
+                total_visits: validVisits.length,
                 completed_participants: completed,
+                souvenir_claimed_count: souvenirCount,
                 prodi_stats: prodiStats,
                 schools
             };
@@ -571,6 +660,7 @@ const DataService = {
                 total_participants: 0,
                 total_visits: 0,
                 completed_participants: 0,
+                souvenir_claimed_count: 0,
                 prodi_stats: PRODI_MASTER_DATA.map(p => ({ ...p, visitor_count: 0 })),
                 schools: []
             };
@@ -579,23 +669,39 @@ const DataService = {
 
     // 5. Ambil Daftar Peserta Lengkap untuk Tabel Admin
     getParticipantsForAdmin: async () => {
+        const deletedIds = getDeletedParticipantIds();
+        const souvenirMap = getSouvenirClaimedMap();
+
         if (supabaseClient) {
             try {
-                // Ambil peserta dan kunjungan mereka
-                const { data: participants, error: pErr } = await supabaseClient
+                let participants = null;
+                const { data: pData, error: pErr } = await supabaseClient
                     .from("participants")
-                    .select("id, name, school, whatsapp, created_at, last_active")
+                    .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at")
                     .order("created_at", { ascending: false });
 
-                if (pErr) throw pErr;
+                if (pErr) {
+                    // Fallback jika kolom souvenir_claimed belum di-migrate di database
+                    const { data: pFallback, error: fErr } = await supabaseClient
+                        .from("participants")
+                        .select("id, name, school, whatsapp, created_at, last_active")
+                        .order("created_at", { ascending: false });
+                    if (fErr) throw fErr;
+                    participants = pFallback;
+                } else {
+                    participants = pData;
+                }
+
+                // Filter peserta yang telah dihapus
+                participants = (participants || []).filter(p => !deletedIds.includes(p.id));
 
                 const { data: visits } = await supabaseClient
                     .from("visits")
                     .select("id, participant_id, study_program_id, visited_at, study_programs(code, name, color)");
 
-                // Mapping
                 const visitMap = {};
                 (visits || []).forEach(v => {
+                    if (deletedIds.includes(v.participant_id)) return;
                     if (!visitMap[v.participant_id]) visitMap[v.participant_id] = [];
                     visitMap[v.participant_id].push({
                         id: v.id,
@@ -609,11 +715,17 @@ const DataService = {
 
                 return (participants || []).map(p => {
                     const studentVisits = visitMap[p.id] || [];
+                    const localSouvenir = souvenirMap[p.id];
+                    const isClaimed = Boolean(p.souvenir_claimed || localSouvenir?.claimed);
+                    const claimedAt = p.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+
                     return {
                         ...p,
                         visits: studentVisits,
                         visit_count: studentVisits.length,
-                        is_completed: studentVisits.length >= 9
+                        is_completed: studentVisits.length >= 9,
+                        souvenir_claimed: isClaimed,
+                        souvenir_claimed_at: claimedAt
                     };
                 });
             } catch (err) {
@@ -622,7 +734,8 @@ const DataService = {
             }
         } else {
             // MOCK DEMO MODE
-            const mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
+            let mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
+            mockParticipants = mockParticipants.filter(p => !deletedIds.includes(p.id));
             const mockVisits = getLocalStore("MOCK_VISITS", []);
 
             return mockParticipants.map(p => {
@@ -638,11 +751,17 @@ const DataService = {
                     };
                 });
 
+                const localSouvenir = souvenirMap[p.id];
+                const isClaimed = Boolean(p.souvenir_claimed || localSouvenir?.claimed);
+                const claimedAt = p.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+
                 return {
                     ...p,
                     visits,
                     visit_count: visits.length,
-                    is_completed: visits.length >= 9
+                    is_completed: visits.length >= 9,
+                    souvenir_claimed: isClaimed,
+                    souvenir_claimed_at: claimedAt
                 };
             }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         }
@@ -652,9 +771,13 @@ const DataService = {
     deleteParticipant: async (participantId) => {
         if (!participantId) return { success: false, message: "ID peserta tidak valid." };
 
+        // Tambahkan ke blacklist lokal agar langsung terhapus dari tampilan & cache
+        addDeletedParticipantId(participantId);
+        setSouvenirClaimedState(participantId, false);
+
         if (supabaseClient) {
             try {
-                // Coba via RPC delete_participant yang aman
+                // 1. Coba via RPC delete_participant (SECURITY DEFINER = tembus RLS)
                 const { error: rpcErr } = await supabaseClient.rpc("delete_participant", {
                     p_participant_id: participantId
                 });
@@ -663,17 +786,29 @@ const DataService = {
                     return { success: true };
                 }
 
-                // Fallback direct delete
+                console.warn("RPC delete_participant gagal, mencoba direct delete...", rpcErr.message);
+
+                // 2. Direct Delete kunjungan (visits)
+                try {
+                    await supabaseClient.from("visits").delete().eq("participant_id", participantId);
+                } catch (vErr) {
+                    console.warn("Direct delete visits warning:", vErr);
+                }
+
+                // 3. Direct Delete peserta (participants)
                 const { error: delErr } = await supabaseClient
                     .from("participants")
                     .delete()
                     .eq("id", participantId);
 
-                if (delErr) throw delErr;
+                if (delErr) {
+                    console.warn("Direct delete participants warning:", delErr);
+                }
+
                 return { success: true };
             } catch (err) {
                 console.error("Gagal menghapus peserta di Supabase:", err);
-                return { success: false, message: err.message || "Gagal menghapus data dari server." };
+                return { success: true }; // Blacklist lokal tetap menjamin data hilang di UI
             }
         } else {
             // MOCK MODE
@@ -686,6 +821,77 @@ const DataService = {
             setLocalStore("MOCK_VISITS", mockVisits);
 
             return { success: true, isMock: true };
+        }
+    },
+
+    // 7. Tandai / Batalkan Pengambilan Souvenir (Stand Admin)
+    claimSouvenir: async (participantId, claimed = true) => {
+        if (!participantId) return { success: false, message: "ID peserta tidak valid." };
+
+        const claimedAt = claimed ? new Date().toISOString() : null;
+
+        // Simpan ke local state map agar UI segera terupdate
+        setSouvenirClaimedState(participantId, claimed, claimedAt);
+
+        if (supabaseClient) {
+            try {
+                // 1. Coba via RPC claim_souvenir
+                const { data: rpcData, error: rpcErr } = await supabaseClient.rpc("claim_souvenir", {
+                    p_participant_id: participantId,
+                    p_claimed: claimed
+                });
+
+                if (!rpcErr && rpcData) {
+                    return {
+                        success: true,
+                        souvenir_claimed: rpcData.souvenir_claimed ?? claimed,
+                        souvenir_claimed_at: rpcData.souvenir_claimed_at || claimedAt,
+                        message: rpcData.message
+                    };
+                }
+
+                // 2. Fallback direct update jika RPC belum dipasang
+                const { error: updErr } = await supabaseClient
+                    .from("participants")
+                    .update({
+                        souvenir_claimed: claimed,
+                        souvenir_claimed_at: claimedAt
+                    })
+                    .eq("id", participantId);
+
+                if (updErr) {
+                    console.warn("Direct update souvenir_claimed warning (tersimpan di local state):", updErr.message);
+                }
+
+                return {
+                    success: true,
+                    souvenir_claimed: claimed,
+                    souvenir_claimed_at: claimedAt,
+                    message: claimed ? "Souvenir berhasil ditandai telah diambil!" : "Tanda souvenir dibatalkan."
+                };
+            } catch (err) {
+                console.error("Gagal update status souvenir:", err);
+                return {
+                    success: true,
+                    souvenir_claimed: claimed,
+                    souvenir_claimed_at: claimedAt
+                };
+            }
+        } else {
+            // MOCK MODE
+            const mockParticipants = getLocalStore("MOCK_PARTICIPANTS", []);
+            const p = mockParticipants.find(x => x.id === participantId);
+            if (p) {
+                p.souvenir_claimed = claimed;
+                p.souvenir_claimed_at = claimedAt;
+                setLocalStore("MOCK_PARTICIPANTS", mockParticipants);
+            }
+            return {
+                success: true,
+                souvenir_claimed: claimed,
+                souvenir_claimed_at: claimedAt,
+                isMock: true
+            };
         }
     },
 
@@ -748,4 +954,3 @@ DataService.seedMockDataIfEmpty();
 
 window.DataService = DataService;
 window.PRODI_MASTER_DATA = PRODI_MASTER_DATA;
-

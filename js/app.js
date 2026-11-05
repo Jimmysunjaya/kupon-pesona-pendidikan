@@ -32,11 +32,19 @@
         studentSchool: document.getElementById('studentSchool'),
         btnSwitchStudent: document.getElementById('btnSwitchStudent'),
 
-        // Progress
+        // Progress & Souvenir Voucher
         statVisitedCount: document.getElementById('statVisitedCount'),
         statPercentage: document.getElementById('statPercentage'),
         progressBarFill: document.getElementById('progressBarFill'),
         completionBanner: document.getElementById('completionBanner'),
+        souvenirBannerIcon: document.getElementById('souvenirBannerIcon'),
+        souvenirBannerTitle: document.getElementById('souvenirBannerTitle'),
+        souvenirBannerDesc: document.getElementById('souvenirBannerDesc'),
+        souvenirStatusBadge: document.getElementById('souvenirStatusBadge'),
+        voucherStudentName: document.getElementById('voucherStudentName'),
+        voucherStudentSchool: document.getElementById('voucherStudentSchool'),
+        voucherActionNote: document.getElementById('voucherActionNote'),
+        btnCheckSouvenirStatus: document.getElementById('btnCheckSouvenirStatus'),
 
         // Prodi Grid
         prodiGrid: document.getElementById('prodiGrid'),
@@ -247,9 +255,61 @@
         elements.statPercentage.textContent = pct;
         elements.progressBarFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
 
-        // Completion Banner
+        // Completion Banner & Souvenir Voucher
         if (visited >= total) {
             elements.completionBanner.classList.add('show');
+
+            if (elements.voucherStudentName) {
+                elements.voucherStudentName.textContent = currentParticipant?.name || 'Siswa Peserta';
+            }
+            if (elements.voucherStudentSchool) {
+                elements.voucherStudentSchool.textContent = currentParticipant?.school || '';
+            }
+
+            const isSouvenirClaimed = Boolean(currentParticipant?.souvenir_claimed || stats?.souvenir_claimed);
+
+            if (isSouvenirClaimed) {
+                if (elements.souvenirStatusBadge) {
+                    elements.souvenirStatusBadge.className = 'voucher-status-pill status-claimed';
+                    elements.souvenirStatusBadge.innerHTML = '✓ Sudah Diambil';
+                }
+                if (elements.souvenirBannerIcon) {
+                    elements.souvenirBannerIcon.textContent = '🎁';
+                }
+                if (elements.souvenirBannerTitle) {
+                    elements.souvenirBannerTitle.textContent = 'Souvenir Telah Berhasil Diambil!';
+                }
+                if (elements.souvenirBannerDesc) {
+                    let timeClaim = '';
+                    if (currentParticipant?.souvenir_claimed_at) {
+                        try {
+                            const d = new Date(currentParticipant.souvenir_claimed_at);
+                            timeClaim = ` pada pukul ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} WIB`;
+                        } catch {}
+                    }
+                    elements.souvenirBannerDesc.textContent = `Selamat! Souvenir kamu telah diserahkan oleh panitia di Stand Admin${timeClaim}. Terima kasih telah mengunjungi seluruh 9 Stand Program Studi ST Bhinneka!`;
+                }
+                if (elements.voucherActionNote) {
+                    elements.voucherActionNote.textContent = 'Status: Souvenir sudah diterima dari Stand Admin';
+                }
+            } else {
+                if (elements.souvenirStatusBadge) {
+                    elements.souvenirStatusBadge.className = 'voucher-status-pill status-pending';
+                    elements.souvenirStatusBadge.innerHTML = '🎁 Belum Diambil';
+                }
+                if (elements.souvenirBannerIcon) {
+                    elements.souvenirBannerIcon.textContent = '🏆';
+                }
+                if (elements.souvenirBannerTitle) {
+                    elements.souvenirBannerTitle.textContent = 'Luar Biasa! Semua Stand Telah Dikunjungi!';
+                }
+                if (elements.souvenirBannerDesc) {
+                    elements.souvenirBannerDesc.textContent = 'Kamu telah menyelesaikan seluruh 9 kunjungan Program Studi. Tunjukkan kupon ini ke panitia di Stand Admin untuk mengambil merchandise & hadiah!';
+                }
+                if (elements.voucherActionNote) {
+                    elements.voucherActionNote.textContent = 'Tunjukkan ke Stand Admin untuk klaim souvenir';
+                }
+            }
         } else {
             elements.completionBanner.classList.remove('show');
         }
@@ -576,6 +636,33 @@
         if (e.target === elements.scannerModal) stopScanner();
         if (e.target === elements.resultModal) elements.resultModal.classList.remove('active');
         if (elements.configModal && e.target === elements.configModal) elements.configModal.classList.remove('active');
+    });
+
+    // 7. Periksa Status Klaim Souvenir
+    if (elements.btnCheckSouvenirStatus) {
+        elements.btnCheckSouvenirStatus.addEventListener('click', async () => {
+            const token = localStorage.getItem('STUDENT_SESSION_TOKEN');
+            if (token) {
+                showToast('Memeriksa status klaim souvenir terbaru...', 'info', 1200);
+                await loadStudentDashboard(token);
+                if (currentParticipant?.souvenir_claimed) {
+                    triggerCelebration();
+                    showToast('✅ Souvenir kamu telah terverifikasi sudah diambil!', 'success', 3000);
+                } else {
+                    showToast('Status: Belum diambil. Silakan datang ke Stand Admin!', 'info', 3000);
+                }
+            }
+        });
+    }
+
+    // Auto-refresh status saat siswa kembali membuka layar web ini
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            const token = localStorage.getItem('STUDENT_SESSION_TOKEN');
+            if (token && currentStats && currentStats.total_visited >= 9) {
+                loadStudentDashboard(token);
+            }
+        }
     });
 
     // Run on page ready

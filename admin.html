@@ -68,7 +68,7 @@
             <div class="admin-brand">
                 <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" style="height: 46px; object-fit: contain; background: #FFFFFF; padding: 4px 8px; border-radius: 8px;">
                 <div class="admin-title-wrap">
-                    <h1>Dashboard Panitia & Admin</h1>
+                    <h1>Dashboard Panitia &amp; Admin</h1>
                     <p>Monitoring Kunjungan 9 Stand Program Studi • Universitas Satya Terra Bhinneka</p>
                 </div>
             </div>
@@ -89,7 +89,7 @@
             </div>
         </header>
 
-        <!-- 4 Overview Stat Tiles -->
+        <!-- 5 Overview Stat Tiles -->
         <section class="stats-overview-grid">
             <!-- 1. Total Peserta -->
             <div class="stat-tile">
@@ -121,11 +121,21 @@
                 <div id="statCompletedSub" class="stat-tile-sub">0% dari total peserta</div>
             </div>
 
-            <!-- 4. Rata-rata Kunjungan -->
+            <!-- 4. Souvenir Diambil (Stand Admin) -->
+            <div class="stat-tile">
+                <div class="stat-tile-header">
+                    <span class="stat-tile-label">Souvenir Diambil</span>
+                    <div class="stat-tile-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">🎁</div>
+                </div>
+                <div id="statSouvenirCount" class="stat-tile-number">0</div>
+                <div id="statSouvenirSub" class="stat-tile-sub">0 dari 0 siswa selesai</div>
+            </div>
+
+            <!-- 5. Rata-rata Kunjungan -->
             <div class="stat-tile">
                 <div class="stat-tile-header">
                     <span class="stat-tile-label">Rata-rata Stand</span>
-                    <div class="stat-tile-icon" style="background: rgba(245, 158, 11, 0.15); color: #FBBF24;">⚡</div>
+                    <div class="stat-tile-icon" style="background: rgba(6, 182, 212, 0.15); color: #22D3EE;">⚡</div>
                 </div>
                 <div id="statAvgVisits" class="stat-tile-number">0.0</div>
                 <div class="stat-tile-sub">Stand per peserta</div>
@@ -150,7 +160,7 @@
         <section id="participantsSection" class="section-panel">
             <div class="section-panel-header">
                 <h2 class="section-panel-title">
-                    <span>📋</span> Data Peserta & Riwayat Kunjungan
+                    <span>📋</span> Data Peserta, Status Souvenir &amp; Riwayat Kunjungan
                 </h2>
                 <div style="font-size: 0.85rem; color: #94A3B8;">
                     Menampilkan <strong id="tableRowCount" style="color: #fff;">0</strong> peserta
@@ -172,7 +182,9 @@
                 <select id="statusFilter" class="admin-select">
                     <option value="">Semua Status</option>
                     <option value="complete">Selesai 9 Stand (100%)</option>
-                    <option value="progress">Sedang Berjalan (&lt;9)</option>
+                    <option value="souvenir_pending">Selesai &amp; Belum Ambil Souvenir 🎁</option>
+                    <option value="souvenir_claimed">Sudah Ambil Souvenir ✅</option>
+                    <option value="progress">Sedang Berjalan (&lt;9 Stand)</option>
                 </select>
 
                 <select id="pageSizeSelect" class="admin-select" style="min-width: 140px;" title="Jumlah data yang ditampilkan per halaman">
@@ -190,12 +202,13 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">No</th>
+                            <th style="width: 45px;">No</th>
                             <th>Nama Siswa</th>
                             <th>Asal Sekolah</th>
                             <th>WhatsApp</th>
                             <th>Stand Terkunjungi</th>
-                            <th>Status</th>
+                            <th>Progres Stand</th>
+                            <th style="text-align: center; min-width: 155px;">Status Souvenir</th>
                             <th>Waktu Daftar</th>
                             <th style="text-align: center; min-width: 140px;">Aksi</th>
                         </tr>
@@ -224,7 +237,7 @@
             <div class="section-panel-header">
                 <div>
                     <h2 class="section-panel-title">
-                        <span>🖨️</span> Manajemen QR Code & Kartu Stand Prodi
+                        <span>🖨️</span> Manajemen QR Code &amp; Kartu Stand Prodi
                     </h2>
                     <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.2rem;">
                         Cetak kartu meja ini untuk dipajang di masing-masing stand agar dapat di-scan oleh siswa.
@@ -249,28 +262,41 @@
     </div>
 
     <!-- ===================================================================
-         MODAL: DETAIL RIWAYAT KUNJUNGAN SISWA
+         MODAL: DETAIL RIWAYAT KUNJUNGAN SISWA & KLAIM SOUVENIR
          =================================================================== -->
     <div id="participantDetailModal" class="modal-overlay">
-        <div class="modal-dialog" style="max-width: 560px;">
+        <div class="modal-dialog" style="max-width: 580px;">
             <div class="modal-header">
                 <h3 class="modal-title">
-                    <span>👤</span> Detail Riwayat Siswa
+                    <span>👤</span> Detail Riwayat &amp; Klaim Souvenir
                 </h3>
                 <button id="btnCloseDetailModal" class="btn-close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div style="background: #111622; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+                <!-- Info Siswa -->
+                <div style="background: #111622; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <h4 id="detailStudentName" style="font-size: 1.15rem; font-weight: 800; color: #fff;">Nama</h4>
                     <p id="detailStudentSchool" style="color: #94A3B8; font-size: 0.85rem; margin-top: 0.2rem;">Sekolah</p>
                     <p id="detailStudentWa" style="color: #60A5FA; font-size: 0.85rem; margin-top: 0.2rem;">WhatsApp</p>
+                </div>
+
+                <!-- Souvenir Status Card -->
+                <div id="detailSouvenirBox" style="background: #182030; border: 1px solid var(--border-color); padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Status Pengambilan Souvenir</div>
+                        <div id="detailSouvenirStatusText" style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 0.2rem;">Belum Diambil</div>
+                        <div id="detailSouvenirTime" style="font-size: 0.75rem; color: #64748B; margin-top: 0.15rem;">-</div>
+                    </div>
+                    <button id="btnModalToggleSouvenir" class="btn-claim-souvenir" style="padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                        🎁 Tandai Ambil Souvenir
+                    </button>
                 </div>
 
                 <h5 style="font-size: 0.9rem; font-weight: 700; color: #F1F5F9; margin-bottom: 0.75rem;">
                     Daftar Stand Terkunjungi (<span id="detailVisitedCount">0</span> dari 9)
                 </h5>
 
-                <div id="detailVisitsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 280px; overflow-y: auto;">
+                <div id="detailVisitsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto;">
                     <!-- List items -->
                 </div>
             </div>
@@ -282,4 +308,3 @@
     <script src="js/admin.js"></script>
 </body>
 </html>
-

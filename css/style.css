@@ -442,18 +442,18 @@ body::before {
     box-shadow: 0 0 10px rgba(253, 224, 71, 0.6);
 }
 
-/* Completion Banner */
+/* Completion Banner & Souvenir Voucher */
 .completion-banner {
     display: none;
     margin-top: 1.25rem;
-    padding: 1rem 1.25rem;
+    padding: 1.15rem 1.25rem;
     background: rgba(255, 255, 255, 0.15);
     border: 1.5px solid rgba(255, 255, 255, 0.5);
     border-radius: var(--radius-md);
     color: #FFFFFF;
-    align-items: center;
+    flex-direction: column;
     gap: 0.85rem;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
     animation: fadeIn 0.5s ease-out forwards;
 }
 
@@ -461,8 +461,16 @@ body::before {
     display: flex;
 }
 
+.completion-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+}
+
 .completion-icon {
-    font-size: 1.6rem;
+    font-size: 1.75rem;
+    flex-shrink: 0;
 }
 
 .completion-text h4 {
@@ -475,6 +483,99 @@ body::before {
 .completion-text p {
     font-size: 0.8rem;
     color: #E0F2FE;
+    line-height: 1.4;
+}
+
+.souvenir-voucher-box {
+    background: rgba(11, 14, 20, 0.35);
+    border: 1.5px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.voucher-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.voucher-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #BAE6FD;
+    text-transform: uppercase;
+}
+
+.voucher-status-pill {
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.voucher-status-pill.status-pending {
+    background: #F59E0B;
+    color: #0F172A;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.voucher-status-pill.status-claimed {
+    background: #10B981;
+    color: #FFFFFF;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.voucher-info {
+    border-left: 2px solid rgba(255, 255, 255, 0.3);
+    padding-left: 0.6rem;
+}
+
+.voucher-student {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #FFFFFF;
+}
+
+.voucher-meta {
+    font-size: 0.75rem;
+    color: #E0F2FE;
+}
+
+.voucher-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.btn-check-souvenir {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #FFFFFF;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-check-souvenir:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* -----------------------------------------------------------------------------
