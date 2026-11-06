@@ -40,7 +40,7 @@ Aplikasi web modern, responsif, dan aman berbasis **HTML, CSS, JavaScript, dan S
 
 | No | Program Studi | Kode | Warna Khas | QR Token Stand |
 |:--:|:--------------|:----:|:----------:|:---------------|
-| 1 | **Informatika** | `INF` | `#00D2FF` (Cyan Tech) | `QR_INF_PRODI_2026` |
+| 1 | **Informatika** | `INF` | `#DC2626` (Merah) | `QR_INF_PRODI_2026` |
 | 2 | **Bisnis Digital** | `BDG` | `#6366F1` (Indigo Purple) | `QR_BDG_PRODI_2026` |
 | 3 | **Kewirausahaan** | `KWU` | `#F59E0B` (Amber Gold) | `QR_KWU_PRODI_2026` |
 | 4 | **Agribisnis** | `AGB` | `#10B981` (Emerald Green) | `QR_AGB_PRODI_2026` |

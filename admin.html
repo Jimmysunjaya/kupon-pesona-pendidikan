@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Pesona Pendidikan 2026</title>
-    <meta name="description" content="Dashboard Admin untuk memantau statistik kunjungan siswa ke 9 stand Program Studi Pesona Pendidikan 2026.">
-    <meta name="theme-color" content="#0B0E14">
+    <title>Panel Administrator &amp; Monitoring Real-Time - Universitas Satya Terra Bhinneka</title>
+    <meta name="description" content="Dashboard Panitia & Admin untuk memantau rekapitulasi data kunjungan stand program studi Pesona Pendidikan 2026 secara real-time.">
+    <meta name="theme-color" content="#0F172A">
 
     <!-- Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,41 +19,56 @@
 
     <!-- Admin CSS -->
     <link rel="stylesheet" href="css/admin.css">
-    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="theme-formal-light">
 
     <!-- Toast Notification -->
-    <div id="toastBox" class="toast-box">
+    <div id="toastBox" class="toast-box" role="alert" aria-live="polite">
         <span id="toastIcon">ℹ️</span>
         <span id="toastMessage">Pesan notifikasi</span>
     </div>
 
+    <!-- Live Realtime Incoming Pulse Toast -->
+    <div id="realtimeLiveToast" class="realtime-live-toast" style="display: none;">
+        <span class="live-toast-ping"></span>
+        <div class="live-toast-content">
+            <span class="live-toast-title">Update Real-Time Masuk</span>
+            <span id="realtimeLiveToastText" class="live-toast-desc">Data baru diterima sistem</span>
+        </div>
+    </div>
+
     <!-- ===================================================================
-         VIEW: PIN / PASSCODE PROTECTION
+         VIEW: PIN / PASSCODE PROTECTION (FORMAL LOGIN)
          =================================================================== -->
-    <div id="adminPinGate" class="auth-wrapper" style="display: none; padding-top: 5rem;">
-        <div class="reg-card">
-            <div class="reg-header">
-                <span class="reg-badge">Area Terbatas</span>
-                <h2 class="reg-title">Admin Login 🔒</h2>
-                <p class="reg-desc">Masukkan PIN Keamanan untuk membuka Dashboard Panitia.</p>
+    <div id="adminPinGate" class="auth-wrapper" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="img/logo-st-bhinneka.png" alt="Logo Universitas Satya Terra Bhinneka" class="auth-logo">
+                <span class="auth-badge">Kepanitiaan Resmi</span>
+                <h1 class="auth-title">Autentikasi Administrator</h1>
+                <p class="auth-desc">Pesona Pendidikan 2026 • Universitas Satya Terra Bhinneka</p>
+                <div class="auth-notice">
+                    Masukkan PIN Administrator untuk membuka akses sistem rekapitulasi real-time.
+                </div>
             </div>
-            <form id="formAdminPin">
+
+            <form id="formAdminPin" class="auth-form">
                 <div class="form-group">
-                    <label class="form-label" for="adminPinInput">PIN Admin</label>
+                    <label class="form-label" for="adminPinInput">KODE KEAMANAN / PIN ADMIN</label>
                     <div class="input-icon-wrapper">
-                        <span class="input-icon">🔑</span>
-                        <input type="password" id="adminPinInput" class="form-control" placeholder="Default PIN: admin123" required autofocus>
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="adminPinInput" class="form-control" placeholder="Masukkan PIN (Default: admin123)" required autofocus autocomplete="current-password">
                     </div>
                 </div>
-                <button type="submit" class="btn-primary">
-                    <span>Masuk Dashboard</span>
-                    <span>➔</span>
+
+                <button type="submit" class="btn-primary-formal">
+                    <span>Verifikasi &amp; Buka Dashboard</span>
+                    <span>&rarr;</span>
                 </button>
             </form>
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <a href="index.html" style="color: #64748B; font-size: 0.85rem; text-decoration: none;">&larr; Kembali ke Dashboard Siswa</a>
+
+            <div class="auth-footer">
+                <a href="index.html" class="auth-back-link">&larr; Kembali ke Beranda Aplikasi Siswa</a>
             </div>
         </div>
     </div>
@@ -63,131 +78,181 @@
          =================================================================== -->
     <div id="adminDashboardContent" class="admin-wrapper" style="display: none;">
 
-        <!-- Navigation Bar -->
-        <header class="admin-navbar">
+        <!-- Formal Header & Navigation Bar -->
+        <header class="admin-navbar no-print">
             <div class="admin-brand">
-                <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" style="height: 46px; object-fit: contain; background: #FFFFFF; padding: 4px 8px; border-radius: 8px;">
+                <div class="admin-logo-container">
+                    <img src="img/logo-st-bhinneka.png" alt="ST Bhinneka" class="admin-logo-img">
+                </div>
                 <div class="admin-title-wrap">
-                    <h1>Dashboard Panitia &amp; Admin</h1>
-                    <p>Monitoring Kunjungan 9 Stand Program Studi • Universitas Satya Terra Bhinneka</p>
+                    <div class="admin-pretitle">PANEL ADMINISTRATOR &amp; REKAPITULASI RESMI</div>
+                    <h1 class="admin-maintitle">Universitas Satya Terra Bhinneka</h1>
+                    <p class="admin-subtitle">Monitoring Real-Time Kunjungan 9 Stand Program Studi • Pesona Pendidikan 2026</p>
                 </div>
             </div>
 
-            <div class="admin-nav-actions no-print">
-                <button id="btnRefreshData" class="btn-admin" title="Segarkan Data Real-Time">
-                    🔄 <span>Segarkan</span>
+            <div class="admin-nav-actions">
+                <!-- Realtime Live Status Pill -->
+                <div id="realtimeIndicator" class="realtime-status-pill" title="Status Sinkronisasi Real-Time Otomatis">
+                    <span class="realtime-pulse-dot"></span>
+                    <div class="realtime-text-wrap">
+                        <span id="realtimeStatusText" class="realtime-status-label">Realtime Aktif</span>
+                        <span id="realtimeSyncTime" class="realtime-sync-time">Menghubungkan...</span>
+                    </div>
+                </div>
+
+                <button id="btnRefreshData" class="btn-action-formal" title="Segarkan Data Real-Time">
+                    <span>🔄</span> <span>Segarkan</span>
                 </button>
-                <button id="btnExportExcel" class="btn-admin btn-admin-success">
-                    📥 <span>Export ke Excel</span>
+
+                <button id="btnExportExcel" class="btn-action-formal btn-action-success" title="Ekspor data ke file spreadsheet Excel">
+                    <span>📥</span> <span>Export Excel (.xlsx)</span>
                 </button>
-                <a href="index.html" class="btn-admin">
-                    🏠 <span>Lihat Web Siswa</span>
+
+                <button id="btnToggleTheme" class="btn-action-formal" title="Ganti Tema Tampilan (Terang Formal / Gelap Formal)">
+                    <span id="themeToggleIcon">🌙</span> <span id="themeToggleText">Mode Gelap</span>
+                </button>
+
+                <a href="index.html" class="btn-action-formal" title="Buka Halaman Siswa">
+                    <span>🏠</span> <span>Web Siswa</span>
                 </a>
-                <button id="btnLogoutAdmin" class="btn-admin" style="color: #EF4444;">
-                    🚪 <span>Keluar</span>
+
+                <button id="btnLogoutAdmin" class="btn-action-formal btn-action-danger" title="Keluar dari sesi administrator">
+                    <span>🚪</span> <span>Keluar</span>
                 </button>
             </div>
         </header>
 
-        <!-- 5 Overview Stat Tiles -->
+        <!-- 5 Overview Stat Tiles (Formal High-Contrast KPI Cards) -->
         <section class="stats-overview-grid">
             <!-- 1. Total Peserta -->
-            <div class="stat-tile">
+            <div class="stat-tile stat-tile-blue">
                 <div class="stat-tile-header">
-                    <span class="stat-tile-label">Total Peserta</span>
-                    <div class="stat-tile-icon" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA;">👥</div>
+                    <span class="stat-tile-label">TOTAL PESERTA</span>
+                    <div class="stat-tile-icon">👥</div>
                 </div>
                 <div id="statTotalParticipants" class="stat-tile-number">0</div>
-                <div class="stat-tile-sub">Siswa terdaftar di sistem</div>
+                <div class="stat-tile-sub">Siswa terdaftar resmi di sistem</div>
             </div>
 
             <!-- 2. Total Seluruh Kunjungan -->
-            <div class="stat-tile">
+            <div class="stat-tile stat-tile-indigo">
                 <div class="stat-tile-header">
-                    <span class="stat-tile-label">Total Kunjungan</span>
-                    <div class="stat-tile-icon" style="background: rgba(139, 92, 246, 0.15); color: #C084FC;">📍</div>
+                    <span class="stat-tile-label">TOTAL RIWAYAT SCAN</span>
+                    <div class="stat-tile-icon">📍</div>
                 </div>
                 <div id="statTotalVisits" class="stat-tile-number">0</div>
-                <div class="stat-tile-sub">Riwayat scan stand tercatat</div>
+                <div class="stat-tile-sub">Total kunjungan stand tercatat</div>
             </div>
 
             <!-- 3. Siswa Selesai 9 Kunjungan -->
-            <div class="stat-tile">
+            <div class="stat-tile stat-tile-emerald">
                 <div class="stat-tile-header">
-                    <span class="stat-tile-label">Selesai 9 Stand (100%)</span>
-                    <div class="stat-tile-icon" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">🏆</div>
+                    <span class="stat-tile-label">SELESAI 9 STAND (100%)</span>
+                    <div class="stat-tile-icon">🏆</div>
                 </div>
                 <div id="statCompletedCount" class="stat-tile-number">0</div>
                 <div id="statCompletedSub" class="stat-tile-sub">0% dari total peserta</div>
             </div>
 
             <!-- 4. Souvenir Diambil (Stand Admin) -->
-            <div class="stat-tile">
+            <div class="stat-tile stat-tile-amber">
                 <div class="stat-tile-header">
-                    <span class="stat-tile-label">Souvenir Diambil</span>
-                    <div class="stat-tile-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">🎁</div>
+                    <span class="stat-tile-label">SOUVENIR DIAMBIL</span>
+                    <div class="stat-tile-icon">🎁</div>
                 </div>
                 <div id="statSouvenirCount" class="stat-tile-number">0</div>
                 <div id="statSouvenirSub" class="stat-tile-sub">0 dari 0 siswa selesai</div>
             </div>
 
             <!-- 5. Rata-rata Kunjungan -->
-            <div class="stat-tile">
+            <div class="stat-tile stat-tile-cyan">
                 <div class="stat-tile-header">
-                    <span class="stat-tile-label">Rata-rata Stand</span>
-                    <div class="stat-tile-icon" style="background: rgba(6, 182, 212, 0.15); color: #22D3EE;">⚡</div>
+                    <span class="stat-tile-label">RATA-RATA STAND</span>
+                    <div class="stat-tile-icon">⚡</div>
                 </div>
                 <div id="statAvgVisits" class="stat-tile-number">0.0</div>
-                <div class="stat-tile-sub">Stand per peserta</div>
+                <div class="stat-tile-sub">Stand per peserta (Target: 9)</div>
             </div>
         </section>
 
-        <!-- Rekap Pengunjung Per Stand Program Studi -->
+        <!-- Rekap & Leaderboard Stand Program Studi -->
         <section class="section-panel">
             <div class="section-panel-header">
-                <h2 class="section-panel-title">
-                    <span>🏢</span> Rekap Jumlah Pengunjung Setiap Stand Prodi
-                </h2>
-                <span style="font-size: 0.8rem; color: #94A3B8;">Diurutkan dari Stand #1 hingga #9</span>
-            </div>
+                <div>
+                    <h2 class="section-panel-title">
+                        <span>🏢</span> Rekapitulasi &amp; Peringkat Kunjungan Stand Program Studi
+                    </h2>
+                    <p class="section-panel-desc">
+                        Stand dengan progres pengunjung terbanyak langsung terupdate otomatis di urutan teratas secara real-time.
+                    </p>
+                </div>
 
-            <div id="prodiRecapGrid" class="prodi-recap-grid">
-                <!-- Dynamically populated -->
-            </div>
-        </section>
-
-        <!-- Tabel Data Peserta, Pencarian & Filter Sekolah -->
-        <section id="participantsSection" class="section-panel">
-            <div class="section-panel-header">
-                <h2 class="section-panel-title">
-                    <span>📋</span> Data Peserta, Status Souvenir &amp; Riwayat Kunjungan
-                </h2>
-                <div style="font-size: 0.85rem; color: #94A3B8;">
-                    Menampilkan <strong id="tableRowCount" style="color: #fff;">0</strong> peserta
+                <div class="prodi-sort-controls no-print">
+                    <span class="sort-controls-label">Urutan Tampilan Stand:</span>
+                    <div class="btn-group-toggle">
+                        <button id="btnSortProdiCount" class="btn-sort-toggle active" title="Stand yang paling banyak dikunjungi di urutan pertama">
+                            🏆 Pengunjung Terbanyak Di Atas
+                        </button>
+                        <button id="btnSortProdiNumber" class="btn-sort-toggle" title="Urutkan berurutan dari Stand #1 hingga #9">
+                            🔢 Stand #1 - #9
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Filter & Search Toolbar -->
+            <!-- Leaderboard Stand Cards Grid -->
+            <div id="prodiRecapGrid" class="prodi-recap-grid">
+                <!-- Dynamically populated with real-time rank medals and progress bars -->
+            </div>
+        </section>
+
+        <!-- Tabel Data Peserta, Pencarian, Filter & Sorting Real-Time -->
+        <section id="participantsSection" class="section-panel">
+            <div class="section-panel-header">
+                <div>
+                    <h2 class="section-panel-title">
+                        <span>📋</span> Daftar Peserta, Status Souvenir &amp; Riwayat Kunjungan
+                    </h2>
+                    <p class="section-panel-desc">
+                        Kelola data peserta, pantau progres scan stand, dan catat verifikasi klaim souvenir resmi.
+                    </p>
+                </div>
+                <div class="table-counter-badge">
+                    Menampilkan <strong id="tableRowCount">0</strong> peserta
+                </div>
+            </div>
+
+            <!-- Filter, Search & Sorting Toolbar -->
             <div class="filter-toolbar no-print">
                 <div class="search-input-wrapper">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" class="admin-input" placeholder="Cari nama, WhatsApp, atau sekolah...">
+                    <input type="text" id="searchInput" class="admin-input" placeholder="Cari nama siswa, nomor WhatsApp, atau asal sekolah...">
                 </div>
 
-                <select id="schoolFilter" class="admin-select">
+                <select id="schoolFilter" class="admin-select" title="Filter berdasarkan asal sekolah">
                     <option value="">Semua Asal Sekolah</option>
                     <!-- Dynamically populated -->
                 </select>
 
-                <select id="statusFilter" class="admin-select">
-                    <option value="">Semua Status</option>
+                <select id="statusFilter" class="admin-select" title="Filter status kunjungan & souvenir">
+                    <option value="">Semua Status Kunjungan</option>
                     <option value="complete">Selesai 9 Stand (100%)</option>
-                    <option value="souvenir_pending">Selesai &amp; Belum Ambil Souvenir 🎁</option>
+                    <option value="souvenir_pending">Selesai 9 Stand &amp; Belum Ambil Souvenir 🎁</option>
                     <option value="souvenir_claimed">Sudah Ambil Souvenir ✅</option>
                     <option value="progress">Sedang Berjalan (&lt;9 Stand)</option>
                 </select>
 
-                <select id="pageSizeSelect" class="admin-select" style="min-width: 140px;" title="Jumlah data yang ditampilkan per halaman">
+                <!-- Sort Order Selector: Default Progres Terbanyak Di Atas -->
+                <select id="sortOrderSelect" class="admin-select admin-select-highlight" title="Pilih urutan prioritas data peserta">
+                    <option value="progress_desc" selected>🏆 Progres Terbanyak Di Atas (Default)</option>
+                    <option value="progress_asc">📉 Progres Terendah Di Atas</option>
+                    <option value="date_desc">🕒 Pendaftaran Terbaru</option>
+                    <option value="date_asc">⏳ Pendaftaran Terlama</option>
+                    <option value="name_asc">🔤 Nama Siswa (A - Z)</option>
+                </select>
+
+                <select id="pageSizeSelect" class="admin-select admin-select-compact" title="Jumlah data yang ditampilkan per halaman">
                     <option value="10">10 data / hal</option>
                     <option value="15" selected>15 data / hal</option>
                     <option value="25">25 data / hal</option>
@@ -197,20 +262,20 @@
                 </select>
             </div>
 
-            <!-- Table -->
+            <!-- Responsive Table -->
             <div class="table-responsive">
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width: 45px;">No</th>
-                            <th>Nama Siswa</th>
-                            <th>Asal Sekolah</th>
-                            <th>WhatsApp</th>
-                            <th>Stand Terkunjungi</th>
-                            <th>Progres Stand</th>
-                            <th style="text-align: center; min-width: 155px;">Status Souvenir</th>
-                            <th>Waktu Daftar</th>
-                            <th style="text-align: center; min-width: 140px;">Aksi</th>
+                            <th style="width: 50px; text-align: center;">No</th>
+                            <th style="min-width: 190px;">Nama Siswa</th>
+                            <th style="min-width: 170px;">Asal Sekolah</th>
+                            <th style="min-width: 140px;">WhatsApp</th>
+                            <th style="min-width: 180px;">Stand Terkunjungi</th>
+                            <th style="min-width: 150px;">Progres Kunjungan</th>
+                            <th style="text-align: center; min-width: 170px;">Status Souvenir</th>
+                            <th style="min-width: 120px;">Waktu Daftar</th>
+                            <th style="text-align: center; min-width: 145px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="participantsTableBody">
@@ -220,14 +285,14 @@
             </div>
 
             <!-- Pagination Bar -->
-            <div class="pagination-bar no-print" id="paginationBar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.75rem;">
-                <div id="paginationInfo" style="font-size: 0.85rem; color: #94A3B8;">
-                    Menampilkan <strong>0 - 0</strong> dari <strong>0</strong> data
+            <div class="pagination-bar no-print" id="paginationBar">
+                <div id="paginationInfo" class="pagination-info">
+                    Menampilkan <strong>0 - 0</strong> dari <strong>0</strong> data peserta
                 </div>
-                <div class="pagination-actions" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <button id="btnPrevPage" class="btn-admin" style="padding: 0.4rem 0.85rem;">&laquo; Sebelumnya</button>
-                    <span id="currentPageText" style="font-size: 0.85rem; font-weight: 700; color: #fff; padding: 0 0.5rem;">Hal 1 / 1</span>
-                    <button id="btnNextPage" class="btn-admin" style="padding: 0.4rem 0.85rem;">Selanjutnya &raquo;</button>
+                <div class="pagination-actions">
+                    <button id="btnPrevPage" class="btn-page-nav" disabled>&laquo; Sebelumnya</button>
+                    <span id="currentPageText" class="current-page-indicator">Hal 1 / 1</span>
+                    <button id="btnNextPage" class="btn-page-nav" disabled>Selanjutnya &raquo;</button>
                 </div>
             </div>
         </section>
@@ -237,18 +302,18 @@
             <div class="section-panel-header">
                 <div>
                     <h2 class="section-panel-title">
-                        <span>🖨️</span> Manajemen QR Code &amp; Kartu Stand Prodi
+                        <span>🖨️</span> Manajemen QR Code &amp; Kartu Meja Stand Program Studi
                     </h2>
-                    <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.2rem;">
-                        Cetak kartu meja ini untuk dipajang di masing-masing stand agar dapat di-scan oleh siswa.
+                    <p class="section-panel-desc">
+                        Cetak kartu meja berformat A4 resmi ini untuk dipajang di masing-masing stand agar siswa dapat memindai QR Code.
                     </p>
                 </div>
                 <div class="no-print" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button id="btnDownloadAllQR" class="btn-admin btn-admin-success">
-                        📥 <span>Unduh Semua QR</span>
+                    <button id="btnDownloadAllQR" class="btn-action-formal btn-action-success">
+                        <span>📥</span> <span>Unduh Semua QR PNG</span>
                     </button>
-                    <button id="btnPrintQRCards" class="btn-admin btn-admin-primary">
-                        🖨️ <span>Cetak Semua Kartu (A4)</span>
+                    <button id="btnPrintQRCards" class="btn-action-formal btn-action-primary">
+                        <span>🖨️</span> <span>Cetak Semua Kartu (A4)</span>
                     </button>
                 </div>
             </div>
@@ -262,43 +327,57 @@
     </div>
 
     <!-- ===================================================================
-         MODAL: DETAIL RIWAYAT KUNJUNGAN SISWA & KLAIM SOUVENIR
+         MODAL: DETAIL RIWAYAT KUNJUNGAN SISWA & KLAIM SOUVENIR (FORMAL)
          =================================================================== -->
     <div id="participantDetailModal" class="modal-overlay">
-        <div class="modal-dialog" style="max-width: 580px;">
+        <div class="modal-dialog">
             <div class="modal-header">
-                <h3 class="modal-title">
-                    <span>👤</span> Detail Riwayat &amp; Klaim Souvenir
-                </h3>
-                <button id="btnCloseDetailModal" class="btn-close-modal">&times;</button>
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">👤</span>
+                    <h3 class="modal-title">Detail Riwayat &amp; Klaim Souvenir</h3>
+                </div>
+                <button id="btnCloseDetailModal" class="btn-close-modal" aria-label="Tutup modal">&times;</button>
             </div>
+
             <div class="modal-body">
-                <!-- Info Siswa -->
-                <div style="background: #111622; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 id="detailStudentName" style="font-size: 1.15rem; font-weight: 800; color: #fff;">Nama</h4>
-                    <p id="detailStudentSchool" style="color: #94A3B8; font-size: 0.85rem; margin-top: 0.2rem;">Sekolah</p>
-                    <p id="detailStudentWa" style="color: #60A5FA; font-size: 0.85rem; margin-top: 0.2rem;">WhatsApp</p>
+                <!-- Info Siswa Card -->
+                <div class="detail-student-card">
+                    <div class="detail-avatar" id="detailStudentAvatar">S</div>
+                    <div class="detail-student-info">
+                        <h4 id="detailStudentName" class="detail-student-name">Nama Siswa</h4>
+                        <p id="detailStudentSchool" class="detail-student-school">Asal Sekolah</p>
+                        <p id="detailStudentWa" class="detail-student-wa">WhatsApp: -</p>
+                    </div>
                 </div>
 
                 <!-- Souvenir Status Card -->
-                <div id="detailSouvenirBox" style="background: #182030; border: 1px solid var(--border-color); padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
-                    <div>
-                        <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Status Pengambilan Souvenir</div>
-                        <div id="detailSouvenirStatusText" style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 0.2rem;">Belum Diambil</div>
-                        <div id="detailSouvenirTime" style="font-size: 0.75rem; color: #64748B; margin-top: 0.15rem;">-</div>
+                <div id="detailSouvenirBox" class="detail-souvenir-card">
+                    <div class="detail-souvenir-left">
+                        <div class="souvenir-sublabel">STATUS KLAIM SOUVENIR (STAND ADMIN)</div>
+                        <div id="detailSouvenirStatusText" class="souvenir-statustext">Belum Diambil</div>
+                        <div id="detailSouvenirTime" class="souvenir-timetext">-</div>
                     </div>
-                    <button id="btnModalToggleSouvenir" class="btn-claim-souvenir" style="padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                    <button id="btnModalToggleSouvenir" class="btn-claim-souvenir">
                         🎁 Tandai Ambil Souvenir
                     </button>
                 </div>
 
-                <h5 style="font-size: 0.9rem; font-weight: 700; color: #F1F5F9; margin-bottom: 0.75rem;">
-                    Daftar Stand Terkunjungi (<span id="detailVisitedCount">0</span> dari 9)
-                </h5>
-
-                <div id="detailVisitsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto;">
-                    <!-- List items -->
+                <!-- Visited Stands Checklist -->
+                <div class="detail-visits-header">
+                    <h5 class="detail-visits-title">
+                        Daftar Stand Terkunjungi (<span id="detailVisitedCount">0</span> dari 9 Program Studi)
+                    </h5>
                 </div>
+
+                <div id="detailVisitsList" class="detail-visits-list">
+                    <!-- Chronological visit list items -->
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-close" onclick="document.getElementById('participantDetailModal').classList.remove('active')">
+                    Tutup
+                </button>
             </div>
         </div>
     </div>

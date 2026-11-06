@@ -69,7 +69,7 @@ CREATE INDEX idx_visits_study_program ON public.visits(study_program_id);
 -- SEED DATA: 9 PROGRAM STUDI
 -- ------------------------------------------------------------------------------
 INSERT INTO public.study_programs (code, name, icon, color, qr_token, display_order) VALUES
-('INF', 'Informatika', 'code', '#00D2FF', 'QR_INF_PRODI_2026', 1),
+('INF', 'Informatika', 'code', '#DC2626', 'QR_INF_PRODI_2026', 1),
 ('BDG', 'Bisnis Digital', 'trending-up', '#6366F1', 'QR_BDG_PRODI_2026', 2),
 ('KWU', 'Kewirausahaan', 'lightbulb', '#F59E0B', 'QR_KWU_PRODI_2026', 3),
 ('AGB', 'Agribisnis', 'shopping-bag', '#10B981', 'QR_AGB_PRODI_2026', 4),
@@ -441,3 +441,27 @@ GRANT EXECUTE ON FUNCTION public.claim_souvenir(UUID, BOOLEAN) TO anon, authenti
 GRANT EXECUTE ON FUNCTION public.get_participant_status(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_admin_analytics() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_prodi_visit(TEXT, TEXT) TO anon, authenticated;
+
+-- ------------------------------------------------------------------------------
+-- REALTIME REPLICATION (SUPABASE REALTIME)
+-- Mengaktifkan broadcast realtime untuk tabel participants & visits
+-- ------------------------------------------------------------------------------
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'participants'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.participants;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'visits'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.visits;
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+

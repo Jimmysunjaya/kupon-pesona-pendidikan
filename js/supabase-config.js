@@ -41,7 +41,7 @@ const PRODI_MASTER_DATA = [
         code: "INF",
         name: "Informatika",
         icon: "code",
-        color: "#00D2FF",
+        color: "#DC2626",
         qr_token: "QR_INF_PRODI_2026",
         display_order: 1
     },
@@ -160,6 +160,34 @@ const setSouvenirClaimedState = (id, claimed, claimedAt = null) => {
 };
 
 // -----------------------------------------------------------------------------
+// BROADCAST & REALTIME PULSE NOTIFIER
+// Menyebarkan sinyal update instan (0ms) antar tab browser / admin dashboard
+// -----------------------------------------------------------------------------
+const notifyDataChange = (action, payload = {}) => {
+    const detail = {
+        action,
+        payload,
+        timestamp: Date.now()
+    };
+
+    // 1. Storage Event (terbaca di semua tab pada domain yang sama)
+    try {
+        localStorage.setItem("PESONA_DATA_SYNC_PULSE", JSON.stringify(detail));
+    } catch (e) {}
+
+    // 2. BroadcastChannel API
+    try {
+        if (typeof window !== "undefined" && window.BroadcastChannel) {
+            const channel = new BroadcastChannel("pesona_pendidikan_realtime");
+            channel.postMessage(detail);
+            channel.close();
+        }
+    } catch (e) {}
+};
+
+window.notifyDataChange = notifyDataChange;
+
+// -----------------------------------------------------------------------------
 // API SERVICE
 // -----------------------------------------------------------------------------
 const DataService = {
@@ -202,6 +230,7 @@ const DataService = {
 
                 localStorage.setItem("STUDENT_SESSION_TOKEN", sessionToken);
                 localStorage.setItem("STUDENT_NAME", name.trim());
+                notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim() });
                 return { success: true, participant: data, sessionToken };
             } catch (err) {
                 console.error("Gagal registrasi Supabase:", err);
@@ -223,6 +252,7 @@ const DataService = {
 
             localStorage.setItem("STUDENT_SESSION_TOKEN", sessionToken);
             localStorage.setItem("STUDENT_NAME", name.trim());
+            notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim() });
             return { success: true, participant: newParticipant, sessionToken, isMock: true };
         }
     },
@@ -409,6 +439,9 @@ const DataService = {
                 });
 
                 if (error) throw error;
+                if (data && data.success) {
+                    notifyDataChange("RECORD_VISIT", { prodiCode: cleanToken, prodi: data.prodi });
+                }
                 return data;
             } catch (err) {
                 console.warn("RPC record_prodi_visit gagal, fallback ke direct insert...", err);
@@ -465,6 +498,8 @@ const DataService = {
             setLocalStore("MOCK_VISITS", mockVisits);
 
             const total = mockVisits.filter(v => v.participant_id === participant.id).length;
+
+            notifyDataChange("RECORD_VISIT", { prodiCode: prodi.code, prodiName: prodi.name, participantId: participant.id });
 
             return {
                 success: true,
@@ -524,6 +559,8 @@ const DataService = {
                 .insert([{ participant_id: participant.id, study_program_id: prodi.id }]);
 
             if (insErr) throw insErr;
+
+            notifyDataChange("RECORD_VISIT", { prodiCode: prodi.code, prodiName: prodi.name, participantId: participant.id });
 
             return {
                 success: true,
@@ -774,6 +811,7 @@ const DataService = {
         // Tambahkan ke blacklist lokal agar langsung terhapus dari tampilan & cache
         addDeletedParticipantId(participantId);
         setSouvenirClaimedState(participantId, false);
+        notifyDataChange("DELETE_PARTICIPANT", { participantId });
 
         if (supabaseClient) {
             try {
@@ -832,6 +870,7 @@ const DataService = {
 
         // Simpan ke local state map agar UI segera terupdate
         setSouvenirClaimedState(participantId, claimed, claimedAt);
+        notifyDataChange("CLAIM_SOUVENIR", { participantId, claimed, claimedAt });
 
         if (supabaseClient) {
             try {

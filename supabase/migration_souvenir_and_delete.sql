@@ -247,3 +247,27 @@ GRANT EXECUTE ON FUNCTION public.claim_souvenir(UUID, BOOLEAN) TO anon, authenti
 GRANT EXECUTE ON FUNCTION public.get_participant_status(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_admin_analytics() TO anon, authenticated;
 
+-- 8. Aktifkan Supabase Realtime Replication untuk tabel participants & visits
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'participants'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.participants;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'visits'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.visits;
+    END IF;
+
+    -- Perbarui warna Informatika menjadi Merah
+    UPDATE public.study_programs SET color = '#DC2626' WHERE code = 'INF';
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+
