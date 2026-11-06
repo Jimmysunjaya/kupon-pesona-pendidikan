@@ -269,15 +269,23 @@
             const isSouvenirClaimed = Boolean(currentParticipant?.souvenir_claimed || stats?.souvenir_claimed);
 
             if (isSouvenirClaimed) {
+                const itemName = currentParticipant?.souvenir_item || stats?.souvenir_item || 'Souvenir Resmi';
+                let itemIcon = '🎁';
+                const lower = itemName.toLowerCase();
+                if (lower.includes('mug')) itemIcon = '☕';
+                else if (lower.includes('pulpen')) itemIcon = '🖊️';
+                else if (lower.includes('notebook') || lower.includes('buku')) itemIcon = '📓';
+                else if (lower.includes('ganci') || lower.includes('kunci')) itemIcon = '🔑';
+
                 if (elements.souvenirStatusBadge) {
                     elements.souvenirStatusBadge.className = 'voucher-status-pill status-claimed';
-                    elements.souvenirStatusBadge.innerHTML = '✓ Sudah Diambil';
+                    elements.souvenirStatusBadge.innerHTML = `✓ Diterima: ${itemIcon} ${itemName}`;
                 }
                 if (elements.souvenirBannerIcon) {
-                    elements.souvenirBannerIcon.textContent = '🎁';
+                    elements.souvenirBannerIcon.textContent = itemIcon;
                 }
                 if (elements.souvenirBannerTitle) {
-                    elements.souvenirBannerTitle.textContent = 'Souvenir Telah Berhasil Diambil!';
+                    elements.souvenirBannerTitle.textContent = `Souvenir Berhasil Diterima (${itemName})!`;
                 }
                 if (elements.souvenirBannerDesc) {
                     let timeClaim = '';
@@ -287,10 +295,10 @@
                             timeClaim = ` pada pukul ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} WIB`;
                         } catch {}
                     }
-                    elements.souvenirBannerDesc.textContent = `Selamat! Souvenir kamu telah diserahkan oleh panitia di Stand Admin${timeClaim}. Terima kasih telah mengunjungi seluruh 9 Stand Program Studi ST Bhinneka!`;
+                    elements.souvenirBannerDesc.textContent = `Selamat! Hadiah "${itemName}" kamu telah diserahkan oleh panitia di Stand Admin${timeClaim}. Terima kasih telah mengunjungi seluruh 9 Stand Program Studi ST Bhinneka!`;
                 }
                 if (elements.voucherActionNote) {
-                    elements.voucherActionNote.textContent = 'Status: Souvenir sudah diterima dari Stand Admin';
+                    elements.voucherActionNote.textContent = `Status: ${itemIcon} ${itemName} sudah diserahkan di Stand Admin`;
                 }
             } else {
                 if (elements.souvenirStatusBadge) {

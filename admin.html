@@ -12,10 +12,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- CDN Libraries: Supabase JS, SheetJS (XLSX Export), QRCode.js -->
+    <!-- CDN Libraries: Supabase JS, SheetJS (XLSX Export), QRCode.js, Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- Admin CSS -->
     <link rel="stylesheet" href="css/admin.css">
@@ -176,6 +177,110 @@
             </div>
         </section>
 
+        <!-- Rekapitulasi Hadiah & Souvenir Keluar (Real-Time) -->
+        <section class="section-panel souvenir-recap-panel">
+            <div class="section-panel-header">
+                <div>
+                    <h2 class="section-panel-title">
+                        <span>🎁</span> Rekapitulasi Hadiah &amp; Souvenir Keluar
+                    </h2>
+                    <p class="section-panel-desc">
+                        Pantau real-time jumlah dan persentase merchandise/souvenir yang telah diklaim oleh peserta selesai 9 stand.
+                    </p>
+                </div>
+                <div class="souvenir-recap-badge-total">
+                    Total Souvenir Keluar: <strong id="recapTotalDistributed">0</strong> item
+                </div>
+            </div>
+
+            <!-- 4 Cards Breakdown: Mug, Pulpen, Notebook, Ganci -->
+            <div class="souvenir-recap-grid">
+                <!-- 1. Mug -->
+                <div class="souvenir-stat-card card-mug">
+                    <div class="souvenir-card-top">
+                        <div class="souvenir-icon-wrap">☕</div>
+                        <span class="souvenir-badge-chance badge-chance-mug"></span>
+                    </div>
+                    <div class="souvenir-card-body">
+                        <div class="souvenir-name">Mug Cantik</div>
+                        <div class="souvenir-count-wrap">
+                            <span id="souvenirCountMug" class="souvenir-big-number">0</span>
+                            <span class="souvenir-unit">item keluar</span>
+                        </div>
+                        <div class="souvenir-subdetail" id="souvenirDetailMug">
+                            Choice 1: 0 &bull; Choice 2: 0
+                        </div>
+                    </div>
+                    <div class="souvenir-progress-bar">
+                        <div id="souvenirBarMug" class="souvenir-progress-fill bar-mug" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Pulpen -->
+                <div class="souvenir-stat-card card-pulpen">
+                    <div class="souvenir-card-top">
+                        <div class="souvenir-icon-wrap">🖊️</div>
+                        <span class="souvenir-badge-chance badge-chance-pulpen"></span>
+                    </div>
+                    <div class="souvenir-card-body">
+                        <div class="souvenir-name">Pulpen Eksklusif</div>
+                        <div class="souvenir-count-wrap">
+                            <span id="souvenirCountPulpen" class="souvenir-big-number">0</span>
+                            <span class="souvenir-unit">item keluar</span>
+                        </div>
+                        <div class="souvenir-subdetail" id="souvenirDetailPulpen">
+                            0% dari total souvenir keluar
+                        </div>
+                    </div>
+                    <div class="souvenir-progress-bar">
+                        <div id="souvenirBarPulpen" class="souvenir-progress-fill bar-pulpen" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Notebook -->
+                <div class="souvenir-stat-card card-notebook">
+                    <div class="souvenir-card-top">
+                        <div class="souvenir-icon-wrap">📓</div>
+                        <span class="souvenir-badge-chance badge-chance-notebook"></span>
+                    </div>
+                    <div class="souvenir-card-body">
+                        <div class="souvenir-name">Buku Notebook</div>
+                        <div class="souvenir-count-wrap">
+                            <span id="souvenirCountNotebook" class="souvenir-big-number">0</span>
+                            <span class="souvenir-unit">item keluar</span>
+                        </div>
+                        <div class="souvenir-subdetail" id="souvenirDetailNotebook">
+                            0% dari total souvenir keluar
+                        </div>
+                    </div>
+                    <div class="souvenir-progress-bar">
+                        <div id="souvenirBarNotebook" class="souvenir-progress-fill bar-notebook" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Ganci -->
+                <div class="souvenir-stat-card card-ganci">
+                    <div class="souvenir-card-top">
+                        <div class="souvenir-icon-wrap">🔑</div>
+                        <span class="souvenir-badge-chance badge-chance-ganci"></span>
+                    </div>
+                    <div class="souvenir-card-body">
+                        <div class="souvenir-name">Ganci (Gantungan Kunci)</div>
+                        <div class="souvenir-count-wrap">
+                            <span id="souvenirCountGanci" class="souvenir-big-number">0</span>
+                            <span class="souvenir-unit">item keluar</span>
+                        </div>
+                        <div class="souvenir-subdetail" id="souvenirDetailGanci">
+                            0% dari total souvenir keluar
+                        </div>
+                    </div>
+                    <div class="souvenir-progress-bar">
+                        <div id="souvenirBarGanci" class="souvenir-progress-fill bar-ganci" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Rekap & Leaderboard Stand Program Studi -->
         <section class="section-panel">
             <div class="section-panel-header">
@@ -238,8 +343,12 @@
                 <select id="statusFilter" class="admin-select" title="Filter status kunjungan & souvenir">
                     <option value="">Semua Status Kunjungan</option>
                     <option value="complete">Selesai 9 Stand (100%)</option>
-                    <option value="souvenir_pending">Selesai 9 Stand &amp; Belum Ambil Souvenir 🎁</option>
-                    <option value="souvenir_claimed">Sudah Ambil Souvenir ✅</option>
+                    <option value="souvenir_pending">Selesai 9 Stand &amp; Belum Spin Souvenir 🎁</option>
+                    <option value="souvenir_claimed">Sudah Menerima Souvenir (Semua) ✅</option>
+                    <option value="souvenir_mug">Hadiah: ☕ Mug</option>
+                    <option value="souvenir_pulpen">Hadiah: 🖊️ Pulpen</option>
+                    <option value="souvenir_notebook">Hadiah: 📓 Notebook</option>
+                    <option value="souvenir_ganci">Hadiah: 🔑 Ganci</option>
                     <option value="progress">Sedang Berjalan (&lt;9 Stand)</option>
                 </select>
 
@@ -355,11 +464,17 @@
                     <div class="detail-souvenir-left">
                         <div class="souvenir-sublabel">STATUS KLAIM SOUVENIR (STAND ADMIN)</div>
                         <div id="detailSouvenirStatusText" class="souvenir-statustext">Belum Diambil</div>
+                        <div id="detailSouvenirItemName" class="souvenir-item-highlight" style="display: none;"></div>
                         <div id="detailSouvenirTime" class="souvenir-timetext">-</div>
                     </div>
-                    <button id="btnModalToggleSouvenir" class="btn-claim-souvenir">
-                        🎁 Tandai Ambil Souvenir
-                    </button>
+                    <div class="detail-souvenir-actions">
+                        <button id="btnModalSpinSouvenir" class="btn-spin-wheel-row" style="display: none;">
+                            🎰 Putar Spin Hadiah
+                        </button>
+                        <button id="btnModalToggleSouvenir" class="btn-claim-souvenir">
+                            🎁 Tandai Ambil Souvenir
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Visited Stands Checklist -->
@@ -376,6 +491,106 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn-modal-close" onclick="document.getElementById('participantDetailModal').classList.remove('active')">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL: SPIN RODA KEBERUNTUNGAN HADIAH SOUVENIR (STAND ADMIN)
+         =================================================================== -->
+    <div id="spinWheelModal" class="modal-overlay">
+        <div class="modal-dialog modal-spin-dialog">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">🎰</span>
+                    <h3 class="modal-title">Spin Roda Hadiah Souvenir</h3>
+                </div>
+                <button id="btnCloseSpinModal" class="btn-close-modal" aria-label="Tutup modal spin">&times;</button>
+            </div>
+
+            <div class="modal-body spin-modal-body">
+                <!-- Info Siswa Peserta -->
+                <div class="spin-student-banner">
+                    <div class="spin-student-avatar" id="spinStudentAvatar">S</div>
+                    <div class="spin-student-details">
+                        <h4 class="spin-student-name" id="spinStudentName">Nama Siswa</h4>
+                        <div class="spin-student-meta" id="spinStudentMeta">Asal Sekolah &bull; WhatsApp</div>
+                    </div>
+                    <div class="spin-badge-eligible">
+                        <span>🏆</span> Selesai 9 Stand (100%)
+                    </div>
+                </div>
+
+                <!-- Info Peluang Hadiah Sesuai Ketentuan -->
+                <div class="spin-odds-bar">
+                    <div class="spin-odd-item odd-mug" title="Mug (2 Pilihan) - Peluang: 5%">
+                        <span class="odd-icon">☕</span>
+                        <div class="odd-info">
+                            <span class="odd-name">Mug</span>
+                        </div>
+                    </div>
+                    <div class="spin-odd-item odd-pulpen" title="Pulpen (4 Slot) - Peluang: 30%">
+                        <span class="odd-icon">🖊️</span>
+                        <div class="odd-info">
+                            <span class="odd-name">Pulpen</span>
+                        </div>
+                    </div>
+                    <div class="spin-odd-item odd-notebook" title="Notebook (5 Slot) - Peluang: 50%">
+                        <span class="odd-icon">📓</span>
+                        <div class="odd-info">
+                            <span class="odd-name">Notebook</span>
+                        </div>
+                    </div>
+                    <div class="spin-odd-item odd-ganci" title="Ganci (3 Slot) - Peluang: 15%">
+                        <span class="odd-icon">🔑</span>
+                        <div class="odd-info">
+                            <span class="odd-name">Ganci</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arena Roda Keberuntungan (14 Slot: 2 Mug, 4 Pulpen, 5 Notebook, 3 Ganci) -->
+                <div class="wheel-stage-container">
+                    <div class="wheel-pointer-triangle"></div>
+                    <canvas id="wheelCanvas" width="360" height="360" class="wheel-canvas"></canvas>
+                    <button id="btnSpinCenter" class="wheel-center-hub" title="Putar Roda Sekarang!">
+                        <span class="wheel-hub-text">SPIN</span>
+                    </button>
+                </div>
+
+                <!-- Kartu Hasil Spin Menang -->
+                <div id="spinResultCard" class="spin-result-card" style="display: none;">
+                    <div class="spin-result-sparkle">✨ 🎁 SELAMAT! 🎁 ✨</div>
+                    <div class="spin-result-subtitle">Siswa ini memenangkan souvenir:</div>
+                    <div class="spin-result-prize-box">
+                        <span id="spinResultIcon" class="spin-result-icon">📓</span>
+                        <div class="spin-result-prize-text-wrap">
+                            <div id="spinResultName" class="spin-result-name">Buku Notebook</div>
+                        </div>
+                    </div>
+                    <div class="spin-result-actions">
+                        <button id="btnConfirmClaimPrize" class="btn-confirm-prize">
+                            <span>✅</span> <span>Simpan &amp; Berikan Souvenir Ini</span>
+                        </button>
+                        <button id="btnReSpin" class="btn-respin">
+                            <span>↺</span> <span>Putar Ulang</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tombol Putar Utama -->
+                <div id="spinActionArea" class="spin-action-area">
+                    <button id="btnTriggerSpin" class="btn-primary-spin">
+                        <span>🎰</span> <span>PUTAR RODA SEKARANG!</span>
+                    </button>
+                    <div class="spin-hint">Klik tombol di atas atau lingkaran tengah untuk memutar roda hadiah.</div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-close" id="btnCancelSpin">
                     Tutup
                 </button>
             </div>

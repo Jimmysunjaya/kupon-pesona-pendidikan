@@ -148,11 +148,15 @@ const addDeletedParticipantId = (id) => {
 
 // Helper tracking status souvenir peserta (hybrid sync antara Supabase dan local state)
 const getSouvenirClaimedMap = () => getLocalStore("SOUVENIR_CLAIMED_PARTICIPANTS", {});
-const setSouvenirClaimedState = (id, claimed, claimedAt = null) => {
+const setSouvenirClaimedState = (id, claimed, claimedAt = null, souvenirItem = null) => {
     if (!id) return;
     const map = getSouvenirClaimedMap();
     if (claimed) {
-        map[id] = { claimed: true, claimed_at: claimedAt || new Date().toISOString() };
+        map[id] = {
+            claimed: true,
+            claimed_at: claimedAt || new Date().toISOString(),
+            souvenir_item: souvenirItem || map[id]?.souvenir_item || "Souvenir"
+        };
     } else {
         delete map[id];
     }
@@ -288,12 +292,15 @@ const DataService = {
                 const localSouvenir = souvenirMap[data.participant.id];
                 const isClaimed = Boolean(data.participant.souvenir_claimed || localSouvenir?.claimed);
                 const claimedAt = data.participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+                const souvenirItem = data.participant.souvenir_item || localSouvenir?.souvenir_item || null;
 
                 data.participant.souvenir_claimed = isClaimed;
                 data.participant.souvenir_claimed_at = claimedAt;
+                data.participant.souvenir_item = souvenirItem;
                 if (data.stats) {
                     data.stats.souvenir_claimed = isClaimed;
                     data.stats.souvenir_claimed_at = claimedAt;
+                    data.stats.souvenir_item = souvenirItem;
                 }
 
                 return data;
@@ -333,9 +340,11 @@ const DataService = {
             const localSouvenir = souvenirMap[participant.id];
             const isClaimed = Boolean(participant.souvenir_claimed || localSouvenir?.claimed);
             const claimedAt = participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+            const souvenirItem = participant.souvenir_item || localSouvenir?.souvenir_item || null;
 
             participant.souvenir_claimed = isClaimed;
             participant.souvenir_claimed_at = claimedAt;
+            participant.souvenir_item = souvenirItem;
 
             return {
                 registered: true,
@@ -347,7 +356,8 @@ const DataService = {
                     percentage: parseFloat(percentage),
                     is_completed: totalVisited >= 9,
                     souvenir_claimed: isClaimed,
-                    souvenir_claimed_at: claimedAt
+                    souvenir_claimed_at: claimedAt,
+                    souvenir_item: souvenirItem
                 },
                 isMock: true
             };
@@ -396,9 +406,11 @@ const DataService = {
             const localSouvenir = souvenirMap[participant.id];
             const isClaimed = Boolean(participant.souvenir_claimed || localSouvenir?.claimed);
             const claimedAt = participant.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+            const souvenirItem = participant.souvenir_item || localSouvenir?.souvenir_item || null;
 
             participant.souvenir_claimed = isClaimed;
             participant.souvenir_claimed_at = claimedAt;
+            participant.souvenir_item = souvenirItem;
 
             return {
                 registered: true,
@@ -410,7 +422,8 @@ const DataService = {
                     percentage: parseFloat(((totalVisited / 9) * 100).toFixed(1)),
                     is_completed: totalVisited >= 9,
                     souvenir_claimed: isClaimed,
-                    souvenir_claimed_at: claimedAt
+                    souvenir_claimed_at: claimedAt,
+                    souvenir_item: souvenirItem
                 }
             };
         } catch (e) {
@@ -714,17 +727,24 @@ const DataService = {
                 let participants = null;
                 const { data: pData, error: pErr } = await supabaseClient
                     .from("participants")
-                    .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at")
+                    .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
                     .order("created_at", { ascending: false });
 
                 if (pErr) {
-                    // Fallback jika kolom souvenir_claimed belum di-migrate di database
+                    // Fallback jika kolom souvenir_item belum di-migrate di database
                     const { data: pFallback, error: fErr } = await supabaseClient
                         .from("participants")
-                        .select("id, name, school, whatsapp, created_at, last_active")
+                        .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at")
                         .order("created_at", { ascending: false });
-                    if (fErr) throw fErr;
-                    participants = pFallback;
+                    if (fErr) {
+                        const { data: pOld } = await supabaseClient
+                            .from("participants")
+                            .select("id, name, school, whatsapp, created_at, last_active")
+                            .order("created_at", { ascending: false });
+                        participants = pOld;
+                    } else {
+                        participants = pFallback;
+                    }
                 } else {
                     participants = pData;
                 }
@@ -755,6 +775,7 @@ const DataService = {
                     const localSouvenir = souvenirMap[p.id];
                     const isClaimed = Boolean(p.souvenir_claimed || localSouvenir?.claimed);
                     const claimedAt = p.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+                    const souvenirItem = p.souvenir_item || localSouvenir?.souvenir_item || null;
 
                     return {
                         ...p,
@@ -762,7 +783,8 @@ const DataService = {
                         visit_count: studentVisits.length,
                         is_completed: studentVisits.length >= 9,
                         souvenir_claimed: isClaimed,
-                        souvenir_claimed_at: claimedAt
+                        souvenir_claimed_at: claimedAt,
+                        souvenir_item: souvenirItem
                     };
                 });
             } catch (err) {
@@ -791,6 +813,7 @@ const DataService = {
                 const localSouvenir = souvenirMap[p.id];
                 const isClaimed = Boolean(p.souvenir_claimed || localSouvenir?.claimed);
                 const claimedAt = p.souvenir_claimed_at || localSouvenir?.claimed_at || null;
+                const souvenirItem = p.souvenir_item || localSouvenir?.souvenir_item || null;
 
                 return {
                     ...p,
@@ -798,7 +821,8 @@ const DataService = {
                     visit_count: visits.length,
                     is_completed: visits.length >= 9,
                     souvenir_claimed: isClaimed,
-                    souvenir_claimed_at: claimedAt
+                    souvenir_claimed_at: claimedAt,
+                    souvenir_item: souvenirItem
                 };
             }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         }
@@ -863,21 +887,23 @@ const DataService = {
     },
 
     // 7. Tandai / Batalkan Pengambilan Souvenir (Stand Admin)
-    claimSouvenir: async (participantId, claimed = true) => {
+    claimSouvenir: async (participantId, claimed = true, souvenirItem = null) => {
         if (!participantId) return { success: false, message: "ID peserta tidak valid." };
 
         const claimedAt = claimed ? new Date().toISOString() : null;
+        const itemName = claimed ? (souvenirItem || "Souvenir") : null;
 
         // Simpan ke local state map agar UI segera terupdate
-        setSouvenirClaimedState(participantId, claimed, claimedAt);
-        notifyDataChange("CLAIM_SOUVENIR", { participantId, claimed, claimedAt });
+        setSouvenirClaimedState(participantId, claimed, claimedAt, itemName);
+        notifyDataChange("CLAIM_SOUVENIR", { participantId, claimed, claimedAt, souvenirItem: itemName });
 
         if (supabaseClient) {
             try {
                 // 1. Coba via RPC claim_souvenir
                 const { data: rpcData, error: rpcErr } = await supabaseClient.rpc("claim_souvenir", {
                     p_participant_id: participantId,
-                    p_claimed: claimed
+                    p_claimed: claimed,
+                    p_souvenir_item: itemName
                 });
 
                 if (!rpcErr && rpcData) {
@@ -885,17 +911,23 @@ const DataService = {
                         success: true,
                         souvenir_claimed: rpcData.souvenir_claimed ?? claimed,
                         souvenir_claimed_at: rpcData.souvenir_claimed_at || claimedAt,
+                        souvenir_item: rpcData.souvenir_item || itemName,
                         message: rpcData.message
                     };
                 }
 
                 // 2. Fallback direct update jika RPC belum dipasang
+                const updatePayload = {
+                    souvenir_claimed: claimed,
+                    souvenir_claimed_at: claimedAt
+                };
+                if (itemName !== undefined) {
+                    updatePayload.souvenir_item = itemName;
+                }
+
                 const { error: updErr } = await supabaseClient
                     .from("participants")
-                    .update({
-                        souvenir_claimed: claimed,
-                        souvenir_claimed_at: claimedAt
-                    })
+                    .update(updatePayload)
                     .eq("id", participantId);
 
                 if (updErr) {
@@ -906,14 +938,16 @@ const DataService = {
                     success: true,
                     souvenir_claimed: claimed,
                     souvenir_claimed_at: claimedAt,
-                    message: claimed ? "Souvenir berhasil ditandai telah diambil!" : "Tanda souvenir dibatalkan."
+                    souvenir_item: itemName,
+                    message: claimed ? `Souvenir (${itemName}) berhasil diserahkan!` : "Tanda souvenir dibatalkan."
                 };
             } catch (err) {
                 console.error("Gagal update status souvenir:", err);
                 return {
                     success: true,
                     souvenir_claimed: claimed,
-                    souvenir_claimed_at: claimedAt
+                    souvenir_claimed_at: claimedAt,
+                    souvenir_item: itemName
                 };
             }
         } else {
@@ -923,12 +957,14 @@ const DataService = {
             if (p) {
                 p.souvenir_claimed = claimed;
                 p.souvenir_claimed_at = claimedAt;
+                p.souvenir_item = itemName;
                 setLocalStore("MOCK_PARTICIPANTS", mockParticipants);
             }
             return {
                 success: true,
                 souvenir_claimed: claimed,
                 souvenir_claimed_at: claimedAt,
+                souvenir_item: itemName,
                 isMock: true
             };
         }
@@ -944,7 +980,8 @@ const DataService = {
                     { id: "s2", name: "Anisa Putri", school: "SMA Negeri 3 Unggul", whatsapp: "082198765432", session_token: "demo_token_2", created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
                     { id: "s3", name: "Budi Santoso", school: "SMK Informatika Mandiri", whatsapp: "085712341234", session_token: "demo_token_3", created_at: new Date(Date.now() - 3600000 * 1.5).toISOString() },
                     { id: "s4", name: "Dewi Lestari", school: "SMA Negeri 1 Kota", whatsapp: "081399887766", session_token: "demo_token_4", created_at: new Date(Date.now() - 3600000 * 0.8).toISOString() },
-                    { id: "s5", name: "Fajar Nugraha", school: "SMA Swasta Harapan Bangsa", whatsapp: "089677889900", session_token: "demo_token_5", created_at: new Date(Date.now() - 3600000 * 0.2).toISOString() }
+                    { id: "s5", name: "Fajar Nugraha", school: "SMA Swasta Harapan Bangsa", whatsapp: "089677889900", session_token: "demo_token_5", created_at: new Date(Date.now() - 3600000 * 0.2).toISOString() },
+                    { id: "s6", name: "Siti Rahma", school: "SMA Negeri 2 Medan", whatsapp: "082211223344", session_token: "demo_token_6", souvenir_claimed: true, souvenir_claimed_at: new Date(Date.now() - 1800000).toISOString(), souvenir_item: "Buku Notebook", created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
                 ];
 
                 const sampleVisits = [];
@@ -956,6 +993,17 @@ const DataService = {
                         study_program_id: p.id,
                         prodi_code: p.code,
                         visited_at: new Date(Date.now() - 3600000 * 2.5 + idx * 600000).toISOString()
+                    });
+                });
+
+                // s6 sudah 9 kunjungan & sudah klaim souvenir
+                PRODI_MASTER_DATA.forEach((p, idx) => {
+                    sampleVisits.push({
+                        id: `v_s6_${idx}`,
+                        participant_id: "s6",
+                        study_program_id: p.id,
+                        prodi_code: p.code,
+                        visited_at: new Date(Date.now() - 3600000 * 3.5 + idx * 500000).toISOString()
                     });
                 });
 

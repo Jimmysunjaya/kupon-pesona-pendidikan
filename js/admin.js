@@ -92,8 +92,43 @@
         detailVisitedCount: document.getElementById('detailVisitedCount'),
         detailVisitsList: document.getElementById('detailVisitsList'),
         detailSouvenirStatusText: document.getElementById('detailSouvenirStatusText'),
+        detailSouvenirItemName: document.getElementById('detailSouvenirItemName'),
         detailSouvenirTime: document.getElementById('detailSouvenirTime'),
+        btnModalSpinSouvenir: document.getElementById('btnModalSpinSouvenir'),
         btnModalToggleSouvenir: document.getElementById('btnModalToggleSouvenir'),
+
+        // Rekapitulasi Souvenir Keluar
+        recapTotalDistributed: document.getElementById('recapTotalDistributed'),
+        souvenirCountMug: document.getElementById('souvenirCountMug'),
+        souvenirDetailMug: document.getElementById('souvenirDetailMug'),
+        souvenirBarMug: document.getElementById('souvenirBarMug'),
+        souvenirCountPulpen: document.getElementById('souvenirCountPulpen'),
+        souvenirDetailPulpen: document.getElementById('souvenirDetailPulpen'),
+        souvenirBarPulpen: document.getElementById('souvenirBarPulpen'),
+        souvenirCountNotebook: document.getElementById('souvenirCountNotebook'),
+        souvenirDetailNotebook: document.getElementById('souvenirDetailNotebook'),
+        souvenirBarNotebook: document.getElementById('souvenirBarNotebook'),
+        souvenirCountGanci: document.getElementById('souvenirCountGanci'),
+        souvenirDetailGanci: document.getElementById('souvenirDetailGanci'),
+        souvenirBarGanci: document.getElementById('souvenirBarGanci'),
+
+        // Spin Wheel Modal
+        spinWheelModal: document.getElementById('spinWheelModal'),
+        btnCloseSpinModal: document.getElementById('btnCloseSpinModal'),
+        btnCancelSpin: document.getElementById('btnCancelSpin'),
+        spinStudentAvatar: document.getElementById('spinStudentAvatar'),
+        spinStudentName: document.getElementById('spinStudentName'),
+        spinStudentMeta: document.getElementById('spinStudentMeta'),
+        wheelCanvas: document.getElementById('wheelCanvas'),
+        btnSpinCenter: document.getElementById('btnSpinCenter'),
+        btnTriggerSpin: document.getElementById('btnTriggerSpin'),
+        spinResultCard: document.getElementById('spinResultCard'),
+        spinResultIcon: document.getElementById('spinResultIcon'),
+        spinResultName: document.getElementById('spinResultName'),
+        spinResultDetail: document.getElementById('spinResultDetail'),
+        btnConfirmClaimPrize: document.getElementById('btnConfirmClaimPrize'),
+        btnReSpin: document.getElementById('btnReSpin'),
+        spinActionArea: document.getElementById('spinActionArea'),
 
         // Toast
         toastBox: document.getElementById('toastBox'),
@@ -430,6 +465,101 @@
         }
 
         elements.statAvgVisits.textContent = avg;
+
+        // Render Rekapitulasi Souvenir Keluar Real-Time
+        renderSouvenirRecap();
+    }
+
+    // -------------------------------------------------------------------------
+    // RENDER: REKAPITULASI HADIAH & SOUVENIR KELUAR (REAL-TIME BREAKDOWN)
+    // -------------------------------------------------------------------------
+    function renderSouvenirRecap() {
+        const claimedParticipants = allParticipants.filter(p => p.souvenir_claimed);
+        const totalClaimed = claimedParticipants.length;
+
+        let mugCount = 0;
+        let mugChoice1 = 0;
+        let mugChoice2 = 0;
+        let pulpenCount = 0;
+        let notebookCount = 0;
+        let ganciCount = 0;
+
+        claimedParticipants.forEach(p => {
+            const item = (p.souvenir_item || '').toLowerCase();
+            if (item.includes('mug')) {
+                mugCount++;
+                if (item.includes('1') || item.includes('choice 1')) {
+                    mugChoice1++;
+                } else if (item.includes('2') || item.includes('choice 2')) {
+                    mugChoice2++;
+                } else {
+                    mugChoice1++;
+                }
+            } else if (item.includes('pulpen') || item.includes('pen')) {
+                pulpenCount++;
+            } else if (item.includes('notebook') || item.includes('buku')) {
+                notebookCount++;
+            } else if (item.includes('ganci') || item.includes('kunci')) {
+                ganciCount++;
+            } else {
+                notebookCount++;
+            }
+        });
+
+        if (elements.recapTotalDistributed) {
+            elements.recapTotalDistributed.textContent = totalClaimed.toLocaleString('id-ID');
+        }
+
+        // 1. Mug
+        if (elements.souvenirCountMug) {
+            elements.souvenirCountMug.textContent = mugCount.toLocaleString('id-ID');
+            if (elements.souvenirDetailMug) {
+                elements.souvenirDetailMug.textContent = `Choice 1: ${mugChoice1} • Choice 2: ${mugChoice2}`;
+            }
+            if (elements.souvenirBarMug) {
+                const pct = totalClaimed > 0 ? (mugCount / totalClaimed) * 100 : 0;
+                elements.souvenirBarMug.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+            }
+        }
+
+        // 2. Pulpen
+        if (elements.souvenirCountPulpen) {
+            elements.souvenirCountPulpen.textContent = pulpenCount.toLocaleString('id-ID');
+            if (elements.souvenirDetailPulpen) {
+                const pct = totalClaimed > 0 ? (pulpenCount / totalClaimed) * 100 : 0;
+                elements.souvenirDetailPulpen.textContent = totalClaimed > 0 ? `${pct.toFixed(1)}% dari total souvenir keluar` : 'Peluang spin: 30%';
+            }
+            if (elements.souvenirBarPulpen) {
+                const pct = totalClaimed > 0 ? (pulpenCount / totalClaimed) * 100 : 0;
+                elements.souvenirBarPulpen.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+            }
+        }
+
+        // 3. Notebook
+        if (elements.souvenirCountNotebook) {
+            elements.souvenirCountNotebook.textContent = notebookCount.toLocaleString('id-ID');
+            if (elements.souvenirDetailNotebook) {
+                const pct = totalClaimed > 0 ? (notebookCount / totalClaimed) * 100 : 0;
+                elements.souvenirDetailNotebook.textContent = totalClaimed > 0 ? `${pct.toFixed(1)}% dari total souvenir keluar` : 'Peluang spin: 50%';
+            }
+            if (elements.souvenirBarNotebook) {
+                const pct = totalClaimed > 0 ? (notebookCount / totalClaimed) * 100 : 0;
+                elements.souvenirBarNotebook.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+            }
+        }
+
+        // 4. Ganci
+        if (elements.souvenirCountGanci) {
+            elements.souvenirCountGanci.textContent = ganciCount.toLocaleString('id-ID');
+            if (elements.souvenirDetailGanci) {
+                const pct = totalClaimed > 0 ? (ganciCount / totalClaimed) * 100 : 0;
+                elements.souvenirDetailGanci.textContent = totalClaimed > 0 ? `${pct.toFixed(1)}% dari total souvenir keluar` : 'Peluang spin: 15%';
+            }
+            if (elements.souvenirBarGanci) {
+                const pct = totalClaimed > 0 ? (ganciCount / totalClaimed) * 100 : 0;
+                elements.souvenirBarGanci.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -579,6 +709,14 @@
                 matchesStatus = p.is_completed && !p.souvenir_claimed;
             } else if (selectedStatus === 'souvenir_claimed') {
                 matchesStatus = Boolean(p.souvenir_claimed);
+            } else if (selectedStatus === 'souvenir_mug') {
+                matchesStatus = Boolean(p.souvenir_claimed && (p.souvenir_item || '').toLowerCase().includes('mug'));
+            } else if (selectedStatus === 'souvenir_pulpen') {
+                matchesStatus = Boolean(p.souvenir_claimed && (p.souvenir_item || '').toLowerCase().includes('pulpen'));
+            } else if (selectedStatus === 'souvenir_notebook') {
+                matchesStatus = Boolean(p.souvenir_claimed && ((p.souvenir_item || '').toLowerCase().includes('notebook') || (p.souvenir_item || '').toLowerCase().includes('buku')));
+            } else if (selectedStatus === 'souvenir_ganci') {
+                matchesStatus = Boolean(p.souvenir_claimed && (p.souvenir_item || '').toLowerCase().includes('ganci'));
             }
 
             return matchesSearch && matchesSchool && matchesStatus;
@@ -699,18 +837,27 @@
                             timeClaimText = ` ${ct.getHours().toString().padStart(2, '0')}:${ct.getMinutes().toString().padStart(2, '0')}`;
                         } catch {}
                     }
+                    const itemName = p.souvenir_item || 'Souvenir';
+                    let itemIcon = '🎁';
+                    const lowerItem = itemName.toLowerCase();
+                    if (lowerItem.includes('mug')) itemIcon = '☕';
+                    else if (lowerItem.includes('pulpen')) itemIcon = '🖊️';
+                    else if (lowerItem.includes('notebook') || lowerItem.includes('buku')) itemIcon = '📓';
+                    else if (lowerItem.includes('ganci') || lowerItem.includes('kunci')) itemIcon = '🔑';
+
                     souvenirHtml = `
                         <div class="souvenir-claimed-wrap">
-                            <span class="badge-souvenir-done" title="Souvenir telah diambil pada${timeClaimText} WIB">
-                                ✓ Sudah Diambil${timeClaimText}
+                            <span class="badge-souvenir-done" title="Souvenir diterima: ${itemName} pada${timeClaimText} WIB">
+                                ✓ Sudah Menerima: <strong>${itemIcon} ${itemName}</strong>
                             </span>
+                            <div class="souvenir-time-meta">Diterima jam${timeClaimText} WIB</div>
                             <button class="btn-unclaim-souvenir" data-id="${p.id}" data-name="${p.name}" title="Batalkan status souvenir">↺ Batal</button>
                         </div>
                     `;
                 } else {
                     souvenirHtml = `
-                        <button class="btn-claim-souvenir btn-claim-row" data-id="${p.id}" data-name="${p.name}" title="Klik untuk verifikasi pengambilan souvenir">
-                            🎁 Ambil Souvenir
+                        <button class="btn-spin-wheel-row" data-id="${p.id}" data-name="${p.name}" title="Klik untuk memutar roda hadiah keberuntungan!">
+                            <span>🎰</span> <span>Spin Klaim Hadiah</span>
                         </button>
                     `;
                 }
@@ -768,6 +915,15 @@
                 const pId = btn.getAttribute('data-id');
                 const participant = allParticipants.find(p => p.id === pId);
                 if (participant) openParticipantDetail(participant);
+            });
+        });
+
+        // Event listener Spin Klaim Hadiah Button (Tabel)
+        document.querySelectorAll('.btn-spin-wheel-row').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pId = btn.getAttribute('data-id');
+                const participant = allParticipants.find(p => p.id === pId);
+                if (participant) openSpinWheelModal(participant);
             });
         });
 
@@ -893,8 +1049,20 @@
         if (elements.detailSouvenirStatusText) {
             if (participant.is_completed) {
                 if (participant.souvenir_claimed) {
-                    elements.detailSouvenirStatusText.textContent = '✅ Sudah Diambil';
+                    const itemName = participant.souvenir_item || 'Souvenir';
+                    let itemIcon = '🎁';
+                    const lower = itemName.toLowerCase();
+                    if (lower.includes('mug')) itemIcon = '☕';
+                    else if (lower.includes('pulpen')) itemIcon = '🖊️';
+                    else if (lower.includes('notebook') || lower.includes('buku')) itemIcon = '📓';
+                    else if (lower.includes('ganci') || lower.includes('kunci')) itemIcon = '🔑';
+
+                    elements.detailSouvenirStatusText.textContent = '✅ Sudah Menerima Souvenir';
                     elements.detailSouvenirStatusText.style.color = 'var(--success-emerald)';
+                    if (elements.detailSouvenirItemName) {
+                        elements.detailSouvenirItemName.style.display = 'block';
+                        elements.detailSouvenirItemName.innerHTML = `Hadiah: <strong>${itemIcon} ${itemName}</strong>`;
+                    }
                     let tStr = '-';
                     if (participant.souvenir_claimed_at) {
                         try {
@@ -907,23 +1075,26 @@
                     elements.btnModalToggleSouvenir.textContent = '↺ Batalkan Pengambilan Souvenir';
                     elements.btnModalToggleSouvenir.style.display = 'inline-block';
                     elements.btnModalToggleSouvenir.disabled = false;
+                    if (elements.btnModalSpinSouvenir) elements.btnModalSpinSouvenir.style.display = 'none';
                 } else {
-                    elements.detailSouvenirStatusText.textContent = '🎁 Belum Diambil (Berhak Menerima)';
+                    elements.detailSouvenirStatusText.textContent = '🎁 Berhak Menerima Hadiah (Selesai 9 Stand)';
                     elements.detailSouvenirStatusText.style.color = 'var(--warning-amber)';
-                    elements.detailSouvenirTime.textContent = 'Siswa telah menyelesaikan seluruh 9 stand program studi.';
-                    elements.btnModalToggleSouvenir.className = 'btn-claim-souvenir';
-                    elements.btnModalToggleSouvenir.textContent = '🎁 Tandai Sudah Ambil Souvenir';
-                    elements.btnModalToggleSouvenir.style.display = 'inline-block';
-                    elements.btnModalToggleSouvenir.disabled = false;
+                    if (elements.detailSouvenirItemName) elements.detailSouvenirItemName.style.display = 'none';
+                    elements.detailSouvenirTime.textContent = 'Siswa telah menyelesaikan seluruh 9 stand program studi. Putar spin hadiah keberuntungan!';
+                    if (elements.btnModalSpinSouvenir) {
+                        elements.btnModalSpinSouvenir.style.display = 'inline-flex';
+                    }
+                    elements.btnModalToggleSouvenir.style.display = 'none';
                 }
             } else {
                 elements.detailSouvenirStatusText.textContent = '🔒 Belum Memenuhi Syarat (Belum 9 Stand)';
                 elements.detailSouvenirStatusText.style.color = 'var(--text-muted)';
+                if (elements.detailSouvenirItemName) elements.detailSouvenirItemName.style.display = 'none';
                 elements.detailSouvenirTime.textContent = `Baru mengunjungi ${participant.visit_count || 0} dari 9 stand.`;
+                if (elements.btnModalSpinSouvenir) elements.btnModalSpinSouvenir.style.display = 'none';
                 elements.btnModalToggleSouvenir.className = 'btn-action-formal';
                 elements.btnModalToggleSouvenir.textContent = 'Syarat Belum Terpenuhi';
-                elements.btnModalToggleSouvenir.style.display = 'inline-block';
-                elements.btnModalToggleSouvenir.disabled = true;
+                elements.btnModalToggleSouvenir.style.display = 'none';
             }
         }
 
@@ -1010,10 +1181,454 @@
         });
     }
 
+    if (elements.btnModalSpinSouvenir) {
+        elements.btnModalSpinSouvenir.addEventListener('click', () => {
+            if (!activeDetailParticipant) return;
+            const p = activeDetailParticipant;
+            elements.participantDetailModal.classList.remove('active');
+            openSpinWheelModal(p);
+        });
+    }
+
     elements.btnCloseDetailModal.addEventListener('click', () => {
         elements.participantDetailModal.classList.remove('active');
         activeDetailParticipant = null;
     });
+
+    // -------------------------------------------------------------------------
+    // AUDIO SFX HELPER (WEB AUDIO API - ZERO-DEPENDENCY SFX)
+    // -------------------------------------------------------------------------
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function playTickSound() {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(650, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.025);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.025);
+        } catch {}
+    }
+
+    function playWinSound() {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const chords = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            chords.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                const startTime = ctx.currentTime + idx * 0.12;
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.4);
+            });
+        } catch {}
+    }
+
+    function triggerConfetti() {
+        if (typeof window.confetti === 'function') {
+            window.confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            setTimeout(() => {
+                window.confetti({
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 60,
+                    origin: { x: 0.15, y: 0.65 }
+                });
+                window.confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 60,
+                    origin: { x: 0.85, y: 0.65 }
+                });
+            }, 250);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // RODA HADIAH (WHEEL OF FORTUNE): 14 SLICE & PROBABILITAS RESMI
+    // 2 Mug (Choice 1 & 2), 4 Pulpen, 5 Notebook, 3 Ganci
+    // Peluang Resmi: Mug 5%, Pulpen 30%, Notebook 50%, Ganci 15% (Total 100%)
+    // -------------------------------------------------------------------------
+    const SOUVENIR_SEGMENTS = [
+        { type: 'notebook', label: 'Notebook', choice: null, icon: '📓', color: '#059669', textColor: '#FFFFFF' },      // 0
+        { type: 'pulpen',   label: 'Pulpen',   choice: null, icon: '🖊️', color: '#2563EB', textColor: '#FFFFFF' },      // 1
+        { type: 'ganci',    label: 'Ganci',    choice: null, icon: '🔑', color: '#7C3AED', textColor: '#FFFFFF' },      // 2
+        { type: 'notebook', label: 'Notebook', choice: null, icon: '📓', color: '#10B981', textColor: '#FFFFFF' },      // 3
+        { type: 'mug',      label: 'Mug Choice 1', choice: 'Choice 1', icon: '☕', color: '#F59E0B', textColor: '#FFFFFF' }, // 4
+        { type: 'pulpen',   label: 'Pulpen',   choice: null, icon: '🖊️', color: '#3B82F6', textColor: '#FFFFFF' },      // 5
+        { type: 'notebook', label: 'Notebook', choice: null, icon: '📓', color: '#059669', textColor: '#FFFFFF' },      // 6
+        { type: 'ganci',    label: 'Ganci',    choice: null, icon: '🔑', color: '#8B5CF6', textColor: '#FFFFFF' },      // 7
+        { type: 'pulpen',   label: 'Pulpen',   choice: null, icon: '🖊️', color: '#2563EB', textColor: '#FFFFFF' },      // 8
+        { type: 'notebook', label: 'Notebook', choice: null, icon: '📓', color: '#10B981', textColor: '#FFFFFF' },      // 9
+        { type: 'mug',      label: 'Mug Choice 2', choice: 'Choice 2', icon: '☕', color: '#D97706', textColor: '#FFFFFF' }, // 10
+        { type: 'pulpen',   label: 'Pulpen',   choice: null, icon: '🖊️', color: '#3B82F6', textColor: '#FFFFFF' },      // 11
+        { type: 'ganci',    label: 'Ganci',    choice: null, icon: '🔑', color: '#7C3AED', textColor: '#FFFFFF' },      // 12
+        { type: 'notebook', label: 'Notebook', choice: null, icon: '📓', color: '#10B981', textColor: '#FFFFFF' }       // 13
+    ];
+
+    let currentWheelAngle = 0; // dalam radian
+    let isSpinning = false;
+    let activeSpinParticipant = null;
+    let pendingWonPrize = null;
+
+    // Pemilihan pemenang berdasarkan peluang: Mug 5%, Pulpen 30%, Notebook 50%, Ganci 15%
+    function pickWinningPrize() {
+        const rand = Math.random() * 100;
+        let category = '';
+        let targetIndex = 0;
+        let displayName = '';
+        let detailName = '';
+
+        if (rand < 5) {
+            // Mug (5% peluang) -> 2 choices
+            category = 'mug';
+            const mugChoices = [4, 10];
+            targetIndex = mugChoices[Math.floor(Math.random() * mugChoices.length)];
+            const choiceLabel = SOUVENIR_SEGMENTS[targetIndex].choice || 'Choice 1';
+            displayName = `Mug Cantik (${choiceLabel})`;
+            detailName = `Merchandise Premium (Pilihan Eksklusif)`;
+        } else if (rand < 35) {
+            // Pulpen (30% peluang: 5 s.d 35)
+            category = 'pulpen';
+            const pulpenIndices = [1, 5, 8, 11];
+            targetIndex = pulpenIndices[Math.floor(Math.random() * pulpenIndices.length)];
+            displayName = `Pulpen Eksklusif`;
+            detailName = `Alat Tulis Resmi Pesona Pendidikan`;
+        } else if (rand < 85) {
+            // Notebook (50% peluang: 35 s.d 85)
+            category = 'notebook';
+            const notebookIndices = [0, 3, 6, 9, 13];
+            targetIndex = notebookIndices[Math.floor(Math.random() * notebookIndices.length)];
+            displayName = `Buku Notebook`;
+            detailName = `Buku Catatan Eksklusif Kampus`;
+        } else {
+            // Ganci (15% peluang: 85 s.d 100)
+            category = 'ganci';
+            const ganciIndices = [2, 7, 12];
+            targetIndex = ganciIndices[Math.floor(Math.random() * ganciIndices.length)];
+            displayName = `Ganci (Gantungan Kunci)`;
+            detailName = `Gantungan Kunci Akrilik Kampus`;
+        }
+
+        return {
+            category,
+            targetIndex,
+            displayName,
+            detailName,
+            segment: SOUVENIR_SEGMENTS[targetIndex]
+        };
+    }
+
+    // Render Canvas Roda
+    function renderWheel(angle = 0, highlightedIndex = -1) {
+        const canvas = elements.wheelCanvas;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const size = 360;
+
+        const dpr = window.devicePixelRatio || 1;
+        if (canvas.width !== size * dpr) {
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+        }
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, size, size);
+
+        const cx = size / 2;
+        const cy = size / 2;
+        const radius = cx - 12;
+        const total = SOUVENIR_SEGMENTS.length;
+        const arc = (2 * Math.PI) / total;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        for (let i = 0; i < total; i++) {
+            const seg = SOUVENIR_SEGMENTS[i];
+            const startAngle = i * arc;
+            const endAngle = (i + 1) * arc;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, radius, startAngle, endAngle);
+            ctx.closePath();
+
+            if (highlightedIndex === i) {
+                ctx.fillStyle = '#FEF08A';
+            } else {
+                ctx.fillStyle = seg.color;
+            }
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Label text & icon
+            ctx.save();
+            ctx.rotate(startAngle + arc / 2);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = (highlightedIndex === i) ? '#0F172A' : (seg.textColor || '#FFFFFF');
+            ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+
+            let shortLabel = seg.label;
+            if (seg.choice) {
+                shortLabel = `Mug (${seg.choice === 'Choice 1' ? 'C1' : 'C2'})`;
+            }
+            ctx.fillText(`${seg.icon} ${shortLabel}`, radius - 14, 0);
+            ctx.restore();
+        }
+
+        ctx.restore();
+
+        // Ring pembatas luar
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#0F172A';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Lampu LED keliling
+        const lights = 28;
+        const timeBlink = Math.floor(Date.now() / 250);
+        for (let l = 0; l < lights; l++) {
+            const a = (l * 2 * Math.PI) / lights;
+            const lx = cx + (radius + 2) * Math.cos(a);
+            const ly = cy + (radius + 2) * Math.sin(a);
+            ctx.beginPath();
+            ctx.arc(lx, ly, 2.5, 0, 2 * Math.PI);
+            ctx.fillStyle = (l % 2 === timeBlink % 2) ? '#FEF08A' : '#FFFFFF';
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    // Buka Modal Spin untuk Siswa yang Berhak
+    function openSpinWheelModal(participant) {
+        if (!participant) return;
+        activeSpinParticipant = participant;
+        pendingWonPrize = null;
+        isSpinning = false;
+
+        if (elements.spinStudentAvatar) {
+            elements.spinStudentAvatar.textContent = participant.name ? participant.name.charAt(0).toUpperCase() : 'S';
+        }
+        if (elements.spinStudentName) {
+            elements.spinStudentName.textContent = participant.name;
+        }
+        if (elements.spinStudentMeta) {
+            elements.spinStudentMeta.textContent = `${participant.school || '-'} • WA: ${participant.whatsapp || '-'}`;
+        }
+
+        // Reset UI hasil spin
+        if (elements.spinResultCard) elements.spinResultCard.style.display = 'none';
+        if (elements.spinActionArea) elements.spinActionArea.style.display = 'block';
+        if (elements.btnTriggerSpin) {
+            elements.btnTriggerSpin.disabled = false;
+            elements.btnTriggerSpin.innerHTML = `<span>🎰</span> <span>PUTAR RODA SEKARANG!</span>`;
+        }
+        if (elements.btnSpinCenter) elements.btnSpinCenter.disabled = false;
+        if (elements.btnConfirmClaimPrize) {
+            elements.btnConfirmClaimPrize.disabled = false;
+            elements.btnConfirmClaimPrize.innerHTML = `<span>✅</span> <span>Simpan &amp; Berikan Souvenir Ini</span>`;
+        }
+
+        renderWheel(currentWheelAngle);
+
+        if (elements.spinWheelModal) {
+            elements.spinWheelModal.classList.add('active');
+        }
+    }
+
+    function closeSpinModal() {
+        if (elements.spinWheelModal) {
+            elements.spinWheelModal.classList.remove('active');
+        }
+        activeSpinParticipant = null;
+        pendingWonPrize = null;
+        isSpinning = false;
+    }
+
+    // Jalankan Putaran Roda
+    function startWheelSpin() {
+        if (isSpinning || !activeSpinParticipant) return;
+        isSpinning = true;
+
+        if (elements.btnTriggerSpin) elements.btnTriggerSpin.disabled = true;
+        if (elements.btnSpinCenter) elements.btnSpinCenter.disabled = true;
+        if (elements.spinResultCard) elements.spinResultCard.style.display = 'none';
+
+        // Tentukan pemenang sesuai probabilitas (Mug 5%, Pulpen 30%, Notebook 50%, Ganci 15%)
+        const prize = pickWinningPrize();
+        pendingWonPrize = prize;
+
+        const totalSegments = SOUVENIR_SEGMENTS.length;
+        const arc = (2 * Math.PI) / totalSegments;
+        const targetIndex = prize.targetIndex;
+
+        // Pointer berada di 12 o'clock (3*PI / 2)
+        // Hitung sudut akhir agar segmen target berhenti tepat di bawah jarum
+        const finalSliceAngle = (3 * Math.PI / 2) - (targetIndex + 0.5) * arc;
+        const offset = (Math.random() - 0.5) * (arc * 0.4);
+        const twoPi = 2 * Math.PI;
+
+        const fullSpins = 6;
+        const currentMod = ((currentWheelAngle % twoPi) + twoPi) % twoPi;
+        let diff = (finalSliceAngle + offset - currentMod) % twoPi;
+        if (diff < 0) diff += twoPi;
+
+        const startAngle = currentWheelAngle;
+        const endAngle = currentWheelAngle + (fullSpins * twoPi) + diff;
+        const spinDuration = 4400; // ms
+        const startTime = performance.now();
+        let lastPointerSlice = -1;
+
+        function easeOutQuart(t) {
+            return 1 - Math.pow(1 - t, 4);
+        }
+
+        function animateSpin(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / spinDuration);
+            const eased = easeOutQuart(progress);
+
+            const currentAngle = startAngle + (endAngle - startAngle) * eased;
+            currentWheelAngle = currentAngle;
+
+            // Suara klik mekanis jarum
+            const currentSlice = Math.floor((((3 * Math.PI / 2 - currentAngle) % twoPi + twoPi) % twoPi) / arc);
+            if (currentSlice !== lastPointerSlice) {
+                lastPointerSlice = currentSlice;
+                playTickSound();
+            }
+
+            renderWheel(currentAngle);
+
+            if (progress < 1) {
+                requestAnimationFrame(animateSpin);
+            } else {
+                isSpinning = false;
+                renderWheel(endAngle, targetIndex);
+                playWinSound();
+                triggerConfetti();
+
+                if (elements.spinResultIcon) elements.spinResultIcon.textContent = prize.segment.icon;
+                if (elements.spinResultName) elements.spinResultName.textContent = prize.displayName;
+                if (elements.spinResultDetail) elements.spinResultDetail.textContent = prize.detailName;
+
+                if (elements.spinResultCard) elements.spinResultCard.style.display = 'block';
+                if (elements.spinActionArea) elements.spinActionArea.style.display = 'none';
+            }
+        }
+
+        requestAnimationFrame(animateSpin);
+    }
+
+    // Konfirmasi dan Simpan Klaim Hadiah
+    async function confirmPrizeClaim() {
+        if (!activeSpinParticipant || !pendingWonPrize) return;
+
+        elements.btnConfirmClaimPrize.disabled = true;
+        elements.btnConfirmClaimPrize.innerHTML = `⏳ Menyimpan Hadiah...`;
+
+        const pId = activeSpinParticipant.id;
+        const pName = activeSpinParticipant.name;
+        const prizeName = pendingWonPrize.displayName;
+
+        try {
+            const res = await window.DataService.claimSouvenir(pId, true, prizeName);
+            if (res && res.success) {
+                showToast(`Hadiah "${prizeName}" berhasil diberikan kepada ${pName}! 🎁`, 'success');
+
+                activeSpinParticipant.souvenir_claimed = true;
+                activeSpinParticipant.souvenir_claimed_at = res.souvenir_claimed_at || new Date().toISOString();
+                activeSpinParticipant.souvenir_item = prizeName;
+
+                const target = allParticipants.find(p => p.id === pId);
+                if (target) {
+                    target.souvenir_claimed = true;
+                    target.souvenir_claimed_at = activeSpinParticipant.souvenir_claimed_at;
+                    target.souvenir_item = prizeName;
+                }
+
+                closeSpinModal();
+
+                renderParticipantsTable();
+                renderStatsOverview(allAnalytics || {});
+
+                if (activeDetailParticipant && activeDetailParticipant.id === pId) {
+                    openParticipantDetail(activeDetailParticipant);
+                }
+            } else {
+                showToast(res?.message || 'Gagal menyimpan status souvenir.', 'danger');
+                elements.btnConfirmClaimPrize.disabled = false;
+                elements.btnConfirmClaimPrize.innerHTML = `<span>✅</span> <span>Simpan &amp; Berikan Souvenir Ini</span>`;
+            }
+        } catch (err) {
+            console.error('Confirm prize error:', err);
+            showToast('Terjadi kesalahan saat menyimpan hadiah.', 'danger');
+            elements.btnConfirmClaimPrize.disabled = false;
+            elements.btnConfirmClaimPrize.innerHTML = `<span>✅</span> <span>Simpan &amp; Berikan Souvenir Ini</span>`;
+        }
+    }
+
+    // Event listeners modal spin wheel
+    if (elements.btnTriggerSpin) elements.btnTriggerSpin.addEventListener('click', startWheelSpin);
+    if (elements.btnSpinCenter) elements.btnSpinCenter.addEventListener('click', startWheelSpin);
+    if (elements.btnConfirmClaimPrize) elements.btnConfirmClaimPrize.addEventListener('click', confirmPrizeClaim);
+    if (elements.btnReSpin) {
+        elements.btnReSpin.addEventListener('click', () => {
+            if (isSpinning) return;
+            if (elements.spinResultCard) elements.spinResultCard.style.display = 'none';
+            if (elements.spinActionArea) elements.spinActionArea.style.display = 'block';
+            if (elements.btnTriggerSpin) elements.btnTriggerSpin.disabled = false;
+            if (elements.btnSpinCenter) elements.btnSpinCenter.disabled = false;
+            pendingWonPrize = null;
+        });
+    }
+    if (elements.btnCloseSpinModal) elements.btnCloseSpinModal.addEventListener('click', closeSpinModal);
+    if (elements.btnCancelSpin) elements.btnCancelSpin.addEventListener('click', closeSpinModal);
 
     // -------------------------------------------------------------------------
     // EXPORT DATA KE EXCEL (.XLSX via SheetJS)
@@ -1048,6 +1663,7 @@
                     "Persentase Kunjungan": `${(((p.visit_count || 0) / 9) * 100).toFixed(1)}%`,
                     "Status Kunjungan Stand": p.is_completed ? "SELESAI (100%)" : "BELUM SELESAI",
                     "Status Souvenir": souvenirStatus,
+                    "Hadiah Souvenir Diterima": p.souvenir_item || "-",
                     "Waktu Pengambilan Souvenir": souvenirTimeText,
                     "Daftar Stand Terkunjungi": prodisVisited || "Belum ada kunjungan",
                     "Waktu Pendaftaran": p.created_at ? new Date(p.created_at).toLocaleString('id-ID') : "-"
@@ -1065,12 +1681,80 @@
                     : "0%"
             }));
 
+            // Sheet 3: Rekapitulasi Souvenir Keluar (Real-Time Breakdown)
+            const claimedParticipants = allParticipants.filter(p => p.souvenir_claimed);
+            const totalClaimed = claimedParticipants.length;
+
+            let mugCount = 0, mugC1 = 0, mugC2 = 0, pulpenCount = 0, notebookCount = 0, ganciCount = 0;
+            claimedParticipants.forEach(p => {
+                const item = (p.souvenir_item || '').toLowerCase();
+                if (item.includes('mug')) {
+                    mugCount++;
+                    if (item.includes('1') || item.includes('choice 1')) mugC1++;
+                    else if (item.includes('2') || item.includes('choice 2')) mugC2++;
+                    else mugC1++;
+                } else if (item.includes('pulpen') || item.includes('pen')) {
+                    pulpenCount++;
+                } else if (item.includes('notebook') || item.includes('buku')) {
+                    notebookCount++;
+                } else if (item.includes('ganci') || item.includes('kunci')) {
+                    ganciCount++;
+                } else {
+                    notebookCount++;
+                }
+            });
+
+            const souvenirRecapData = [
+                {
+                    "No": 1,
+                    "Jenis Hadiah Souvenir": "Mug Cantik (2 Pilihan)",
+                    "Peluang Spin": "5%",
+                    "Total Item Keluar": mugCount,
+                    "Detail / Variasi": `Choice 1: ${mugC1} | Choice 2: ${mugC2}`,
+                    "Persentase dari Souvenir Keluar": totalClaimed > 0 ? `${((mugCount / totalClaimed) * 100).toFixed(1)}%` : "0%"
+                },
+                {
+                    "No": 2,
+                    "Jenis Hadiah Souvenir": "Pulpen Eksklusif",
+                    "Peluang Spin": "30%",
+                    "Total Item Keluar": pulpenCount,
+                    "Detail / Variasi": "4 Slot di Roda Spin",
+                    "Persentase dari Souvenir Keluar": totalClaimed > 0 ? `${((pulpenCount / totalClaimed) * 100).toFixed(1)}%` : "0%"
+                },
+                {
+                    "No": 3,
+                    "Jenis Hadiah Souvenir": "Buku Notebook",
+                    "Peluang Spin": "50%",
+                    "Total Item Keluar": notebookCount,
+                    "Detail / Variasi": "5 Slot di Roda Spin",
+                    "Persentase dari Souvenir Keluar": totalClaimed > 0 ? `${((notebookCount / totalClaimed) * 100).toFixed(1)}%` : "0%"
+                },
+                {
+                    "No": 4,
+                    "Jenis Hadiah Souvenir": "Ganci (Gantungan Kunci)",
+                    "Peluang Spin": "15%",
+                    "Total Item Keluar": ganciCount,
+                    "Detail / Variasi": "3 Slot di Roda Spin",
+                    "Persentase dari Souvenir Keluar": totalClaimed > 0 ? `${((ganciCount / totalClaimed) * 100).toFixed(1)}%` : "0%"
+                },
+                {
+                    "No": "-",
+                    "Jenis Hadiah Souvenir": "TOTAL SOUVENIR KELUAR",
+                    "Peluang Spin": "100%",
+                    "Total Item Keluar": totalClaimed,
+                    "Detail / Variasi": `Dari total ${allParticipants.filter(p => p.is_completed).length} siswa selesai 9 stand`,
+                    "Persentase dari Souvenir Keluar": "100%"
+                }
+            ];
+
             const wb = XLSX.utils.book_new();
             const ws1 = XLSX.utils.json_to_sheet(exportData);
             const ws2 = XLSX.utils.json_to_sheet(prodiData);
+            const ws3 = XLSX.utils.json_to_sheet(souvenirRecapData);
 
             XLSX.utils.book_append_sheet(wb, ws1, "Data Peserta & Souvenir");
             XLSX.utils.book_append_sheet(wb, ws2, "Rekap Stand Prodi");
+            XLSX.utils.book_append_sheet(wb, ws3, "Rekap Souvenir Keluar");
 
             const dateStr = new Date().toISOString().split('T')[0];
             XLSX.writeFile(wb, `Rekap_Kunjungan_Pesona_Pendidikan_${dateStr}.xlsx`);

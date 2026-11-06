@@ -42,6 +42,7 @@ CREATE TABLE public.participants (
     session_token VARCHAR(64) UNIQUE NOT NULL,   -- Token unik di device siswa (localStorage)
     souvenir_claimed BOOLEAN DEFAULT FALSE,      -- Status pengambilan souvenir di Stand Admin
     souvenir_claimed_at TIMESTAMPTZ DEFAULT NULL,
+    souvenir_item TEXT DEFAULT NULL,             -- Nama jenis hadiah souvenir yang didapat (Spin Wheel)
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_active TIMESTAMPTZ DEFAULT NOW()
 );
@@ -285,7 +286,8 @@ BEGIN
             'whatsapp', v_participant.whatsapp,
             'created_at', v_participant.created_at,
             'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),
-            'souvenir_claimed_at', v_participant.souvenir_claimed_at
+            'souvenir_claimed_at', v_participant.souvenir_claimed_at,
+            'souvenir_item', v_participant.souvenir_item
         ),
         'prodis', v_prodi_list,
         'stats', jsonb_build_object(
@@ -294,7 +296,8 @@ BEGIN
             'percentage', ROUND((v_total_visits::NUMERIC / v_total_prodi::NUMERIC) * 100, 1),
             'is_completed', (v_total_visits >= v_total_prodi),
             'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),
-            'souvenir_claimed_at', v_participant.souvenir_claimed_at
+            'souvenir_claimed_at', v_participant.souvenir_claimed_at,
+            'souvenir_item', v_participant.souvenir_item
         )
     );
 END;
@@ -313,6 +316,7 @@ DECLARE
     v_souvenir_count INT;
     v_prodi_stats JSONB;
     v_schools_list JSONB;
+    v_souvenir_breakdown JSONB;
 BEGIN
     -- Total peserta
     SELECT COUNT(*) INTO v_total_participants FROM public.participants;
@@ -332,6 +336,16 @@ BEGIN
     SELECT COUNT(*) INTO v_souvenir_count 
     FROM public.participants 
     WHERE souvenir_claimed = TRUE;
+
+    -- Breakdown jenis souvenir yang keluar
+    SELECT jsonb_object_agg(COALESCE(souvenir_item, 'Lainnya'), count)
+    INTO v_souvenir_breakdown
+    FROM (
+        SELECT COALESCE(souvenir_item, 'Lainnya') AS souvenir_item, COUNT(*) as count
+        FROM public.participants
+        WHERE souvenir_claimed = TRUE
+        GROUP BY COALESCE(souvenir_item, 'Lainnya')
+    ) s_sub;
 
     -- Rekap per prodi
     SELECT jsonb_agg(
@@ -365,6 +379,7 @@ BEGIN
         'total_visits', v_total_visits,
         'completed_participants', v_completed_count,
         'souvenir_claimed_count', v_souvenir_count,
+        'souvenir_breakdown', COALESCE(v_souvenir_breakdown, '{}'::jsonb),
         'prodi_stats', v_prodi_stats,
         'schools', COALESCE(v_schools_list, '[]'::jsonb)
     );
@@ -387,7 +402,8 @@ $$;
 -- FUNCTION: Klaim / Batalkan Souvenir (Stand Admin - SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.claim_souvenir(
     p_participant_id UUID,
-    p_claimed BOOLEAN DEFAULT TRUE
+    p_claimed BOOLEAN DEFAULT TRUE,
+    p_souvenir_item TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -397,6 +413,7 @@ DECLARE
     v_participant RECORD;
     v_visit_count INT;
     v_claimed_at TIMESTAMPTZ;
+    v_item_name TEXT;
 BEGIN
     SELECT * INTO v_participant FROM public.participants WHERE id = p_participant_id;
     IF NOT FOUND THEN
@@ -416,13 +433,21 @@ BEGIN
         END IF;
 
         v_claimed_at := NOW();
+        v_item_name := COALESCE(p_souvenir_item, v_participant.souvenir_item, 'Souvenir');
+
         UPDATE public.participants 
-        SET souvenir_claimed = TRUE, souvenir_claimed_at = v_claimed_at 
+        SET souvenir_claimed = TRUE, 
+            souvenir_claimed_at = v_claimed_at,
+            souvenir_item = v_item_name
         WHERE id = p_participant_id;
     ELSE
         v_claimed_at := NULL;
+        v_item_name := NULL;
+
         UPDATE public.participants 
-        SET souvenir_claimed = FALSE, souvenir_claimed_at = NULL 
+        SET souvenir_claimed = FALSE, 
+            souvenir_claimed_at = NULL,
+            souvenir_item = NULL
         WHERE id = p_participant_id;
     END IF;
 
@@ -430,14 +455,15 @@ BEGIN
         'success', true, 
         'souvenir_claimed', p_claimed,
         'souvenir_claimed_at', v_claimed_at,
-        'message', CASE WHEN p_claimed THEN 'Souvenir berhasil ditandai telah diambil!' ELSE 'Status souvenir berhasil dibatalkan.' END
+        'souvenir_item', v_item_name,
+        'message', CASE WHEN p_claimed THEN 'Souvenir (' || COALESCE(v_item_name, 'Souvenir') || ') berhasil diserahkan!' ELSE 'Status souvenir berhasil dibatalkan.' END
     );
 END;
 $$;
 
 -- Grant izin eksekusi ke peran public/anon
 GRANT EXECUTE ON FUNCTION public.delete_participant(UUID) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.claim_souvenir(UUID, BOOLEAN) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_souvenir(UUID, BOOLEAN, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_participant_status(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_admin_analytics() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_prodi_visit(TEXT, TEXT) TO anon, authenticated;

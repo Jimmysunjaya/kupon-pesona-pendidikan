@@ -25,13 +25,24 @@ Aplikasi web modern, responsif, dan aman berbasis **HTML, CSS, JavaScript, dan S
   - Total riwayat scan / kunjungan masuk.
   - Jumlah siswa yang telah menyelesaikan 9 stand (100% complete).
   - Rata-rata kunjungan per siswa.
+- **🎰 Roda Keberuntungan & Spin Klaim Hadiah**:
+  - Tombol **"🎰 Spin Klaim Hadiah"** muncul otomatis hanya jika peserta telah mengunjungi full 9 prodi (100%).
+  - Roda putar interaktif (*Wheel of Fortune*) 14 slot dengan efek mekanis audio tick, selebrasi juara, dan confetti.
+  - **Peluang / Probabilitas Hadiah Resmi**:
+    - ☕ **Mug (2 Pilihan: Choice 1 & Choice 2)**: Peluang **5%** (2 slot di roda)
+    - 🖊️ **Pulpen Eksklusif**: Peluang **30%** (4 slot di roda)
+    - 📓 **Buku Notebook**: Peluang **50%** (5 slot di roda)
+    - 🔑 **Ganci (Gantungan Kunci)**: Peluang **15%** (3 slot di roda)
+- **🎁 Rekapitulasi Hadiah & Souvenir Keluar**:
+  - Panel visual real-time jumlah souvenir yang telah keluar untuk Mug, Pulpen, Notebook, dan Ganci.
+  - Keterangan status penerimaan langsung terupdate dengan nama souvenir dan jam penerimaan pada tabel peserta dan voucher siswa.
 - **Rekap Pengunjung Stand**: Bar visual pengunjung setiap dari 9 program studi.
 - **Tabel Data Peserta**:
   - Pencarian instan berdasarkan Nama, Nomor WhatsApp, atau Sekolah.
-  - Filter berdasarkan Asal Sekolah dan Status Kunjungan.
+  - Filter berdasarkan Asal Sekolah dan Status Kunjungan/Souvenir.
   - Tampilan visual chip stand yang telah dikunjungi.
   - Detail riwayat timestamp setiap kunjungan per siswa.
-- **Export ke Excel (.xlsx)**: Export instan 1-klik menggunakan *SheetJS* (berisi Sheet Data Peserta & Sheet Rekap Stand).
+- **Export ke Excel (.xlsx)**: Export instan 1-klik menggunakan *SheetJS* (berisi Sheet Data Peserta & Souvenir, Sheet Rekap Stand, dan Sheet Rekap Souvenir Keluar).
 - **Generator & Cetak Kartu QR Stand**: Siap cetak ke ukuran kertas A4 untuk dipajang di meja masing-masing stand prodi.
 
 ---
