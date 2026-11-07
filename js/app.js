@@ -23,6 +23,7 @@
         formRegistration: document.getElementById('formRegistration'),
         regName: document.getElementById('regName'),
         regSchool: document.getElementById('regSchool'),
+        regGrade: document.getElementById('regGrade'),
         regWhatsapp: document.getElementById('regWhatsapp'),
         btnSubmitReg: document.getElementById('btnSubmitReg'),
 
@@ -243,7 +244,11 @@
         const initial = participant.name ? participant.name.charAt(0).toUpperCase() : 'S';
         elements.studentAvatar.textContent = initial;
         elements.studentName.textContent = participant.name;
-        elements.studentSchool.textContent = participant.school + ' • ' + (participant.whatsapp || '');
+        const gradeText = participant.grade ? ` • ${participant.grade}` : '';
+        elements.studentSchool.textContent = `${participant.school}${gradeText} • ${participant.whatsapp || ''}`;
+        if (elements.voucherStudentSchool) {
+            elements.voucherStudentSchool.textContent = `${participant.school}${gradeText}`;
+        }
     }
 
     function renderStats(stats) {
@@ -526,10 +531,11 @@
 
         const name = elements.regName.value.trim();
         const school = elements.regSchool.value.trim();
+        const grade = elements.regGrade ? elements.regGrade.value.trim() : 'Kelas 10';
         const whatsapp = elements.regWhatsapp.value.trim();
 
-        if (!name || !school || !whatsapp) {
-            showToast('Harap lengkapi semua data formulir!', 'warning');
+        if (!name || !school || !grade || !whatsapp) {
+            showToast('Harap lengkapi semua data formulir termasuk tingkat kelas!', 'warning');
             return;
         }
 
@@ -537,7 +543,7 @@
         elements.btnSubmitReg.innerHTML = `<span class="spinner"></span> <span>Mendaftarkan...</span>`;
 
         try {
-            const res = await window.DataService.registerParticipant(name, school, whatsapp);
+            const res = await window.DataService.registerParticipant(name, school, grade, whatsapp);
 
             if (res.success) {
                 showToast(`Selamat datang, ${name}! Registrasi berhasil.`, 'success');

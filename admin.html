@@ -340,6 +340,14 @@
                     <!-- Dynamically populated -->
                 </select>
 
+                <select id="gradeFilter" class="admin-select" title="Filter berdasarkan tingkat kelas">
+                    <option value="">Semua Tingkat Kelas</option>
+                    <option value="Kelas 10">Kelas 10</option>
+                    <option value="Kelas 11">Kelas 11</option>
+                    <option value="Kelas 12">Kelas 12</option>
+                    <option value="Alumni / Lainnya">Alumni / Lainnya</option>
+                </select>
+
                 <select id="statusFilter" class="admin-select" title="Filter status kunjungan & souvenir">
                     <option value="">Semua Status Kunjungan</option>
                     <option value="complete">Selesai 9 Stand (100%)</option>
@@ -377,8 +385,9 @@
                     <thead>
                         <tr>
                             <th style="width: 50px; text-align: center;">No</th>
-                            <th style="min-width: 190px;">Nama Siswa</th>
-                            <th style="min-width: 170px;">Asal Sekolah</th>
+                            <th style="min-width: 180px;">Nama Siswa</th>
+                            <th style="min-width: 105px; text-align: center;">Kelas</th>
+                            <th style="min-width: 160px;">Asal Sekolah</th>
                             <th style="min-width: 140px;">WhatsApp</th>
                             <th style="min-width: 180px;">Stand Terkunjungi</th>
                             <th style="min-width: 150px;">Progres Kunjungan</th>
@@ -455,6 +464,7 @@
                     <div class="detail-student-info">
                         <h4 id="detailStudentName" class="detail-student-name">Nama Siswa</h4>
                         <p id="detailStudentSchool" class="detail-student-school">Asal Sekolah</p>
+                        <p id="detailStudentGrade" style="font-size: 0.82rem; font-weight: 700; color: var(--brand-blue); margin-top: 0.2rem;">Tingkat: -</p>
                         <p id="detailStudentWa" class="detail-student-wa">WhatsApp: -</p>
                     </div>
                 </div>

@@ -68,6 +68,7 @@
         // Table, Search & Filters
         searchInput: document.getElementById('searchInput'),
         schoolFilter: document.getElementById('schoolFilter'),
+        gradeFilter: document.getElementById('gradeFilter'),
         statusFilter: document.getElementById('statusFilter'),
         sortOrderSelect: document.getElementById('sortOrderSelect'),
         pageSizeSelect: document.getElementById('pageSizeSelect'),
@@ -88,6 +89,7 @@
         detailStudentAvatar: document.getElementById('detailStudentAvatar'),
         detailStudentName: document.getElementById('detailStudentName'),
         detailStudentSchool: document.getElementById('detailStudentSchool'),
+        detailStudentGrade: document.getElementById('detailStudentGrade'),
         detailStudentWa: document.getElementById('detailStudentWa'),
         detailVisitedCount: document.getElementById('detailVisitedCount'),
         detailVisitsList: document.getElementById('detailVisitsList'),
@@ -686,6 +688,7 @@
     function renderParticipantsTable() {
         const searchTerm = elements.searchInput.value.toLowerCase().trim();
         const selectedSchool = elements.schoolFilter.value;
+        const selectedGrade = elements.gradeFilter ? elements.gradeFilter.value : '';
         const selectedStatus = elements.statusFilter.value;
         const sortVal = elements.sortOrderSelect ? elements.sortOrderSelect.value : 'progress_desc';
         participantSortOrder = sortVal;
@@ -699,6 +702,7 @@
                 (p.whatsapp && p.whatsapp.includes(searchTerm));
 
             const matchesSchool = !selectedSchool || p.school === selectedSchool;
+            const matchesGrade = !selectedGrade || (p.grade || 'Kelas 10') === selectedGrade;
 
             let matchesStatus = true;
             if (selectedStatus === 'complete') {
@@ -719,7 +723,7 @@
                 matchesStatus = Boolean(p.souvenir_claimed && (p.souvenir_item || '').toLowerCase().includes('ganci'));
             }
 
-            return matchesSearch && matchesSchool && matchesStatus;
+            return matchesSearch && matchesSchool && matchesGrade && matchesStatus;
         });
 
         // 2. Sorting Peserta: Default Progres Terbanyak (9 Stand duluan) di Atas!
@@ -884,6 +888,11 @@
                         </div>
                     </div>
                 </td>
+                <td style="text-align: center;">
+                    <span class="badge-grade-pill" style="display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(2, 108, 182, 0.1); color: var(--brand-blue); border: 1px solid rgba(2, 108, 182, 0.22); white-space: nowrap;">
+                        ${p.grade || 'Kelas 10'}
+                    </span>
+                </td>
                 <td style="color: var(--text-body); font-weight: 600;">${p.school || '-'}</td>
                 <td>
                     <a href="https://wa.me/${waLink}" target="_blank" rel="noopener noreferrer" style="color: var(--brand-blue); text-decoration: none; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.25rem;" title="Hubungi via WhatsApp">
@@ -1042,6 +1051,9 @@
         }
         elements.detailStudentName.textContent = participant.name;
         elements.detailStudentSchool.textContent = `Asal Sekolah: ${participant.school}`;
+        if (elements.detailStudentGrade) {
+            elements.detailStudentGrade.textContent = `Tingkat: ${participant.grade || 'Kelas 10'}`;
+        }
         elements.detailStudentWa.textContent = `Nomor WhatsApp: ${participant.whatsapp}`;
         elements.detailVisitedCount.textContent = participant.visit_count || 0;
 
@@ -1657,6 +1669,7 @@
                 return {
                     "No": idx + 1,
                     "Nama Siswa": p.name,
+                    "Tingkat Kelas": p.grade || "Kelas 10",
                     "Asal Sekolah": p.school,
                     "Nomor WhatsApp": p.whatsapp,
                     "Total Stand Dikunjungi": p.visit_count || 0,
@@ -1914,6 +1927,13 @@
         currentPage = 1;
         renderParticipantsTable();
     });
+
+    if (elements.gradeFilter) {
+        elements.gradeFilter.addEventListener('change', () => {
+            currentPage = 1;
+            renderParticipantsTable();
+        });
+    }
 
     elements.statusFilter.addEventListener('change', () => {
         currentPage = 1;

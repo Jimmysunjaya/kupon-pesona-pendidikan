@@ -38,6 +38,7 @@ CREATE TABLE public.participants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL,
     school VARCHAR(150) NOT NULL,
+    grade VARCHAR(50) DEFAULT 'Kelas 10',        -- Tingkat Kelas: Kelas 10, 11, 12
     whatsapp VARCHAR(30) NOT NULL,
     session_token VARCHAR(64) UNIQUE NOT NULL,   -- Token unik di device siswa (localStorage)
     souvenir_claimed BOOLEAN DEFAULT FALSE,      -- Status pengambilan souvenir di Stand Admin
@@ -46,6 +47,9 @@ CREATE TABLE public.participants (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     last_active TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration untuk tabel existing jika kolom grade belum ada:
+-- ALTER TABLE public.participants ADD COLUMN IF NOT EXISTS grade VARCHAR(50) DEFAULT 'Kelas 10';
 
 CREATE INDEX idx_participants_session ON public.participants(session_token);
 CREATE INDEX idx_participants_school ON public.participants(school);
@@ -283,6 +287,7 @@ BEGIN
             'id', v_participant.id,
             'name', v_participant.name,
             'school', v_participant.school,
+            'grade', COALESCE(v_participant.grade, 'Kelas 10'),
             'whatsapp', v_participant.whatsapp,
             'created_at', v_participant.created_at,
             'souvenir_claimed', COALESCE(v_participant.souvenir_claimed, FALSE),

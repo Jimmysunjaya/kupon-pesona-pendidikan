@@ -212,29 +212,53 @@ const DataService = {
     },
 
     // 1. Registrasi Peserta Baru
-    registerParticipant: async (name, school, whatsapp) => {
+    registerParticipant: async (name, school, gradeOrWa, whatsapp) => {
+        let actualGrade = "Kelas 10";
+        let actualWa = "";
+
+        if (whatsapp !== undefined && whatsapp !== null) {
+            actualGrade = (gradeOrWa || "Kelas 10").trim();
+            actualWa = (whatsapp || "").trim();
+        } else {
+            actualWa = (gradeOrWa || "").trim();
+        }
+
         const sessionToken = "ST_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now().toString(36);
 
         if (supabaseClient) {
             try {
-                const { data, error } = await supabaseClient
+                const insertPayload = {
+                    name: name.trim(),
+                    school: school.trim(),
+                    grade: actualGrade,
+                    whatsapp: actualWa,
+                    session_token: sessionToken
+                };
+
+                let { data, error } = await supabaseClient
                     .from("participants")
-                    .insert([
-                        {
-                            name: name.trim(),
-                            school: school.trim(),
-                            whatsapp: whatsapp.trim(),
-                            session_token: sessionToken
-                        }
-                    ])
+                    .insert([insertPayload])
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (error && (error.message.includes("grade") || error.code === "42703")) {
+                    // Fallback jika kolom grade belum di-tambahkan di Supabase
+                    delete insertPayload.grade;
+                    const resFallback = await supabaseClient
+                        .from("participants")
+                        .insert([insertPayload])
+                        .select()
+                        .single();
+                    if (resFallback.error) throw resFallback.error;
+                    data = resFallback.data;
+                    data.grade = actualGrade;
+                } else if (error) {
+                    throw error;
+                }
 
                 localStorage.setItem("STUDENT_SESSION_TOKEN", sessionToken);
                 localStorage.setItem("STUDENT_NAME", name.trim());
-                notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim() });
+                notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim(), grade: actualGrade });
                 return { success: true, participant: data, sessionToken };
             } catch (err) {
                 console.error("Gagal registrasi Supabase:", err);
@@ -247,7 +271,8 @@ const DataService = {
                 id: "mock_p_" + Date.now(),
                 name: name.trim(),
                 school: school.trim(),
-                whatsapp: whatsapp.trim(),
+                grade: actualGrade,
+                whatsapp: actualWa,
                 session_token: sessionToken,
                 created_at: new Date().toISOString()
             };
@@ -256,7 +281,7 @@ const DataService = {
 
             localStorage.setItem("STUDENT_SESSION_TOKEN", sessionToken);
             localStorage.setItem("STUDENT_NAME", name.trim());
-            notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim() });
+            notifyDataChange("REGISTER_PARTICIPANT", { name: name.trim(), school: school.trim(), grade: actualGrade });
             return { success: true, participant: newParticipant, sessionToken, isMock: true };
         }
     },
@@ -727,14 +752,14 @@ const DataService = {
                 let participants = null;
                 const { data: pData, error: pErr } = await supabaseClient
                     .from("participants")
-                    .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
+                    .select("id, name, school, grade, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
                     .order("created_at", { ascending: false });
 
                 if (pErr) {
-                    // Fallback jika kolom souvenir_item belum di-migrate di database
+                    // Fallback jika kolom grade atau souvenir_item belum di-migrate di database
                     const { data: pFallback, error: fErr } = await supabaseClient
                         .from("participants")
-                        .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at")
+                        .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
                         .order("created_at", { ascending: false });
                     if (fErr) {
                         const { data: pOld } = await supabaseClient
@@ -976,12 +1001,12 @@ const DataService = {
             const current = getLocalStore("MOCK_PARTICIPANTS", []);
             if (current.length === 0) {
                 const sampleParticipants = [
-                    { id: "s1", name: "Rizky Ramadhan", school: "SMA Negeri 1 Kota", whatsapp: "081234567890", session_token: "demo_token_1", created_at: new Date(Date.now() - 3600000 * 3).toISOString() },
-                    { id: "s2", name: "Anisa Putri", school: "SMA Negeri 3 Unggul", whatsapp: "082198765432", session_token: "demo_token_2", created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-                    { id: "s3", name: "Budi Santoso", school: "SMK Informatika Mandiri", whatsapp: "085712341234", session_token: "demo_token_3", created_at: new Date(Date.now() - 3600000 * 1.5).toISOString() },
-                    { id: "s4", name: "Dewi Lestari", school: "SMA Negeri 1 Kota", whatsapp: "081399887766", session_token: "demo_token_4", created_at: new Date(Date.now() - 3600000 * 0.8).toISOString() },
-                    { id: "s5", name: "Fajar Nugraha", school: "SMA Swasta Harapan Bangsa", whatsapp: "089677889900", session_token: "demo_token_5", created_at: new Date(Date.now() - 3600000 * 0.2).toISOString() },
-                    { id: "s6", name: "Siti Rahma", school: "SMA Negeri 2 Medan", whatsapp: "082211223344", session_token: "demo_token_6", souvenir_claimed: true, souvenir_claimed_at: new Date(Date.now() - 1800000).toISOString(), souvenir_item: "Buku Notebook", created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
+                    { id: "s1", name: "Rizky Ramadhan", school: "SMA Negeri 1 Kota", grade: "Kelas 12", whatsapp: "081234567890", session_token: "demo_token_1", created_at: new Date(Date.now() - 3600000 * 3).toISOString() },
+                    { id: "s2", name: "Anisa Putri", school: "SMA Negeri 3 Unggul", grade: "Kelas 11", whatsapp: "082198765432", session_token: "demo_token_2", created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+                    { id: "s3", name: "Budi Santoso", school: "SMK Informatika Mandiri", grade: "Kelas 10", whatsapp: "085712341234", session_token: "demo_token_3", created_at: new Date(Date.now() - 3600000 * 1.5).toISOString() },
+                    { id: "s4", name: "Dewi Lestari", school: "SMA Negeri 1 Kota", grade: "Kelas 12", whatsapp: "081399887766", session_token: "demo_token_4", created_at: new Date(Date.now() - 3600000 * 0.8).toISOString() },
+                    { id: "s5", name: "Fajar Nugraha", school: "SMA Swasta Harapan Bangsa", grade: "Kelas 11", whatsapp: "089677889900", session_token: "demo_token_5", created_at: new Date(Date.now() - 3600000 * 0.2).toISOString() },
+                    { id: "s6", name: "Siti Rahma", school: "SMA Negeri 2 Medan", grade: "Kelas 12", whatsapp: "082211223344", session_token: "demo_token_6", souvenir_claimed: true, souvenir_claimed_at: new Date(Date.now() - 1800000).toISOString(), souvenir_item: "Buku Notebook", created_at: new Date(Date.now() - 3600000 * 4).toISOString() }
                 ];
 
                 const sampleVisits = [];
