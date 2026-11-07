@@ -525,6 +525,13 @@
     // EVENT LISTENERS
     // -------------------------------------------------------------------------
 
+    // Filter input nomor WhatsApp hanya angka / integer (panjang bebas)
+    if (elements.regWhatsapp) {
+        elements.regWhatsapp.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+    }
+
     // 1. Submit Form Registrasi
     elements.formRegistration.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -532,10 +539,11 @@
         const name = elements.regName.value.trim();
         const school = elements.regSchool.value.trim();
         const grade = elements.regGrade ? elements.regGrade.value.trim() : 'Kelas 10';
-        const whatsapp = elements.regWhatsapp.value.trim();
+        const rawWhatsapp = elements.regWhatsapp.value.trim();
+        const whatsapp = rawWhatsapp.replace(/[^0-9]/g, '');
 
         if (!name || !school || !grade || !whatsapp) {
-            showToast('Harap lengkapi semua data formulir termasuk tingkat kelas!', 'warning');
+            showToast('Harap lengkapi semua data formulir dengan nomor HP angka!', 'warning');
             return;
         }
 
