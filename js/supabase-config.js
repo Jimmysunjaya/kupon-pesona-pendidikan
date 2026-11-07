@@ -682,15 +682,40 @@ const DataService = {
         }
     },
 
+    // Helper untuk query Supabase melewati limit bawaan 1000 baris PostgREST
+    _fetchAllBatchedRows: async (queryBuilderFn, batchSize = 1000, maxTotal = 50000) => {
+        let allRows = [];
+        let from = 0;
+        while (from < maxTotal) {
+            const to = from + batchSize - 1;
+            try {
+                const res = await queryBuilderFn(from, to);
+                if (res.error) {
+                    console.warn("Batch fetch warning:", res.error);
+                    break;
+                }
+                const data = res.data || [];
+                allRows.push(...data);
+                if (data.length < batchSize) {
+                    break; // Selesai, semua baris sudah diambil
+                }
+                from += batchSize;
+            } catch (err) {
+                console.warn("Batch loop error:", err);
+                break;
+            }
+        }
+        return allRows;
+    },
+
     _getAdminAnalyticsDirect: async () => {
         try {
             const deletedIds = getDeletedParticipantIds();
             const souvenirMap = getSouvenirClaimedMap();
 
-            const { data: participants } = await supabaseClient
-                .from("participants")
-                .select("id, school");
-
+            const participants = await DataService._fetchAllBatchedRows((from, to) =>
+                supabaseClient.from("participants").select("id, school").range(from, to)
+            );
             const validParticipants = (participants || []).filter(p => !deletedIds.includes(p.id));
 
             const { data: prodis } = await supabaseClient
@@ -698,10 +723,9 @@ const DataService = {
                 .select("*")
                 .order("display_order", { ascending: true });
 
-            const { data: visits } = await supabaseClient
-                .from("visits")
-                .select("participant_id, study_program_id");
-
+            const visits = await DataService._fetchAllBatchedRows((from, to) =>
+                supabaseClient.from("visits").select("participant_id, study_program_id").range(from, to)
+            );
             const validVisits = (visits || []).filter(v => !deletedIds.includes(v.participant_id));
 
             const counts = {};
@@ -749,54 +773,97 @@ const DataService = {
 
         if (supabaseClient) {
             try {
-                let participants = null;
-                const { data: pData, error: pErr } = await supabaseClient
-                    .from("participants")
-                    .select("id, name, school, grade, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
-                    .order("created_at", { ascending: false });
+                let participants = [];
+                let fetchSuccess = false;
 
-                if (pErr) {
-                    // Fallback jika kolom grade atau souvenir_item belum di-migrate di database
-                    const { data: pFallback, error: fErr } = await supabaseClient
-                        .from("participants")
-                        .select("id, name, school, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
-                        .order("created_at", { ascending: false });
-                    if (fErr) {
-                        const { data: pOld } = await supabaseClient
+                // Percobaan 1: Ambil peserta langsung beserta relasi visits (menghindari limit per tabel)
+                try {
+                    const nested = await DataService._fetchAllBatchedRows((from, to) =>
+                        supabaseClient
                             .from("participants")
-                            .select("id, name, school, whatsapp, created_at, last_active")
-                            .order("created_at", { ascending: false });
-                        participants = pOld;
-                    } else {
-                        participants = pFallback;
+                            .select(`
+                                id, name, school, grade, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item,
+                                visits (
+                                    id, study_program_id, visited_at,
+                                    study_programs ( code, name, color )
+                                )
+                            `)
+                            .order("created_at", { ascending: false })
+                            .range(from, to)
+                    );
+
+                    if (nested && nested.length > 0) {
+                        participants = nested;
+                        fetchSuccess = true;
                     }
-                } else {
-                    participants = pData;
+                } catch (nestedErr) {
+                    console.warn("Relational query participants + visits gagal, gunakan fallback bertahap...", nestedErr);
                 }
 
-                // Filter peserta yang telah dihapus
-                participants = (participants || []).filter(p => !deletedIds.includes(p.id));
+                // Percobaan 2: Jika query relasional gagal (misal relasi Supabase belum ke-detect), gunakan query bertahap dengan batching
+                if (!fetchSuccess) {
+                    let pData = await DataService._fetchAllBatchedRows((from, to) =>
+                        supabaseClient
+                            .from("participants")
+                            .select("id, name, school, grade, whatsapp, created_at, last_active, souvenir_claimed, souvenir_claimed_at, souvenir_item")
+                            .order("created_at", { ascending: false })
+                            .range(from, to)
+                    );
 
-                const { data: visits } = await supabaseClient
-                    .from("visits")
-                    .select("id, participant_id, study_program_id, visited_at, study_programs(code, name, color)");
+                    if (!pData || pData.length === 0) {
+                        // Fallback jika kolom grade belum ada di DB
+                        pData = await DataService._fetchAllBatchedRows((from, to) =>
+                            supabaseClient
+                                .from("participants")
+                                .select("id, name, school, whatsapp, created_at, last_active")
+                                .order("created_at", { ascending: false })
+                                .range(from, to)
+                        );
+                    }
 
-                const visitMap = {};
-                (visits || []).forEach(v => {
-                    if (deletedIds.includes(v.participant_id)) return;
-                    if (!visitMap[v.participant_id]) visitMap[v.participant_id] = [];
-                    visitMap[v.participant_id].push({
+                    // Ambil SEMUA data visits tanpa limit 1000 baris menggunakan batching
+                    const visits = await DataService._fetchAllBatchedRows((from, to) =>
+                        supabaseClient
+                            .from("visits")
+                            .select("id, participant_id, study_program_id, visited_at, study_programs(code, name, color)")
+                            .order("visited_at", { ascending: false })
+                            .range(from, to)
+                    );
+
+                    const visitMap = {};
+                    (visits || []).forEach(v => {
+                        if (deletedIds.includes(v.participant_id)) return;
+                        if (!visitMap[v.participant_id]) visitMap[v.participant_id] = [];
+                        visitMap[v.participant_id].push({
+                            id: v.id,
+                            study_program_id: v.study_program_id,
+                            visited_at: v.visited_at,
+                            code: v.study_programs ? v.study_programs.code : "",
+                            name: v.study_programs ? v.study_programs.name : "",
+                            color: v.study_programs ? v.study_programs.color : ""
+                        });
+                    });
+
+                    participants = (pData || []).map(p => ({
+                        ...p,
+                        visits: visitMap[p.id] || []
+                    }));
+                }
+
+                // Filter peserta yang telah dihapus oleh admin
+                const validParticipants = (participants || []).filter(p => !deletedIds.includes(p.id));
+
+                return validParticipants.map(p => {
+                    const rawVisits = Array.isArray(p.visits) ? p.visits : [];
+                    const studentVisits = rawVisits.map(v => ({
                         id: v.id,
                         study_program_id: v.study_program_id,
                         visited_at: v.visited_at,
-                        code: v.study_programs ? v.study_programs.code : "",
-                        name: v.study_programs ? v.study_programs.name : "",
-                        color: v.study_programs ? v.study_programs.color : ""
-                    });
-                });
+                        code: v.study_programs ? v.study_programs.code : (v.code || ""),
+                        name: v.study_programs ? v.study_programs.name : (v.name || ""),
+                        color: v.study_programs ? v.study_programs.color : (v.color || "")
+                    }));
 
-                return (participants || []).map(p => {
-                    const studentVisits = visitMap[p.id] || [];
                     const localSouvenir = souvenirMap[p.id];
                     const isClaimed = Boolean(p.souvenir_claimed || localSouvenir?.claimed);
                     const claimedAt = p.souvenir_claimed_at || localSouvenir?.claimed_at || null;
@@ -804,6 +871,7 @@ const DataService = {
 
                     return {
                         ...p,
+                        grade: p.grade || "Kelas 10",
                         visits: studentVisits,
                         visit_count: studentVisits.length,
                         is_completed: studentVisits.length >= 9,
